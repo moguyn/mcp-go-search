@@ -11,6 +11,9 @@ mcp-search-server
 *.out
 go.work
 
+# Coverage reports
+coverage.html
+
 # Dependency directories
 vendor/
 
