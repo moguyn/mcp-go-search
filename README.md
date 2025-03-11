@@ -188,6 +188,20 @@ The server follows SOLID principles:
 - **Interface Segregation**: Interfaces are specific to client needs
 - **Dependency Inversion**: High-level modules don't depend on low-level modules
 
+## Contributing
+
+We welcome contributions to the Bocha AI Search MCP Server! Please see our [CONTRIBUTING.md](CONTRIBUTING.md) file for detailed guidelines on how to contribute.
+
+Here's a quick overview:
+
+1. **Fork the repository**
+2. **Create a feature branch** (`git checkout -b feature/amazing-feature`)
+3. **Commit your changes** (`git commit -m 'Add some amazing feature'`)
+4. **Push to the branch** (`git push origin feature/amazing-feature`)
+5. **Open a Pull Request**
+
+Please ensure your code follows our style guidelines and passes all tests before submitting a PR.
+
 ## License
 
 MIT 
