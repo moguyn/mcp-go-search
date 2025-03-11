@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"gopkg.in/yaml.v3"
@@ -82,18 +83,21 @@ func New() *Config {
 
 // LoadFromFile loads configuration from a YAML file
 func (c *Config) LoadFromFile(path string) error {
-	// Validate and sanitize the path to prevent path traversal
-	cleanPath := filepath.Clean(path)
-
-	// Check if the path was potentially unsafe
-	if cleanPath != path {
-		log.Printf("Warning: Path was sanitized from %s to %s", path, cleanPath)
-	}
-
-	// Get absolute path to ensure we're not accessing outside intended directory
-	absPath, err := filepath.Abs(cleanPath)
+	// Get the absolute path of the file
+	absPath, err := filepath.Abs(path)
 	if err != nil {
 		return fmt.Errorf("failed to resolve absolute path: %w", err)
+	}
+
+	// Get the current working directory as the base allowed directory
+	allowedDir, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("failed to get current working directory: %w", err)
+	}
+
+	// Ensure the file is within the allowed directory
+	if !isPathSafe(absPath, allowedDir) {
+		return fmt.Errorf("security error: file path '%s' is outside of allowed directory '%s'", absPath, allowedDir)
 	}
 
 	// Now safely read the file
@@ -131,6 +135,16 @@ func (c *Config) LoadFromFile(path string) error {
 	}
 
 	return nil
+}
+
+// isPathSafe checks if the given path is within the allowed directory
+func isPathSafe(path, allowedDir string) bool {
+	// Clean both paths to normalize them
+	path = filepath.Clean(path)
+	allowedDir = filepath.Clean(allowedDir)
+
+	// Check if the path is within the allowed directory
+	return path == allowedDir || strings.HasPrefix(path, allowedDir+string(filepath.Separator))
 }
 
 // Validate performs additional validation on the configuration
