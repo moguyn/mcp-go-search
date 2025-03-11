@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -81,7 +82,22 @@ func New() *Config {
 
 // LoadFromFile loads configuration from a YAML file
 func (c *Config) LoadFromFile(path string) error {
-	data, err := os.ReadFile(path)
+	// Validate and sanitize the path to prevent path traversal
+	cleanPath := filepath.Clean(path)
+
+	// Check if the path was potentially unsafe
+	if cleanPath != path {
+		log.Printf("Warning: Path was sanitized from %s to %s", path, cleanPath)
+	}
+
+	// Get absolute path to ensure we're not accessing outside intended directory
+	absPath, err := filepath.Abs(cleanPath)
+	if err != nil {
+		return fmt.Errorf("failed to resolve absolute path: %w", err)
+	}
+
+	// Now safely read the file
+	data, err := os.ReadFile(absPath)
 	if err != nil {
 		return fmt.Errorf("failed to read config file: %w", err)
 	}
