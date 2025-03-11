@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 )
@@ -153,5 +154,100 @@ func TestGetEnvDurationWithDefault(t *testing.T) {
 	duration = getEnvDurationWithDefault("TEST_DURATION", 10*time.Second)
 	if duration != 10*time.Second {
 		t.Errorf("Expected default duration for invalid input, got %s", duration)
+	}
+}
+
+// TestLoadFromFile tests the LoadFromFile function
+func TestLoadFromFile(t *testing.T) {
+	// Create a temporary config file
+	tempDir := t.TempDir()
+	configPath := filepath.Join(tempDir, "test_config.yaml")
+
+	// Write test config to the file
+	configContent := `
+# Test configuration
+bocha_api_key: "test-api-key-from-file"
+bocha_api_base_url: "https://test-from-file.api.com"
+http_timeout: "15s"
+server_name: "Test Server From File"
+server_version: "2.0.0"
+`
+	err := os.WriteFile(configPath, []byte(configContent), 0600)
+	if err != nil {
+		t.Fatalf("Failed to create test config file: %v", err)
+	}
+
+	// Create a config with default values
+	cfg := &Config{
+		BochaAPIKey:     "default-api-key",
+		BochaAPIBaseURL: "https://default.api.com",
+		HTTPTimeout:     10 * time.Second,
+		ServerName:      "Default Server",
+		ServerVersion:   "1.0.0",
+	}
+
+	// Load the config from the file
+	err = cfg.LoadFromFile(configPath)
+	if err != nil {
+		t.Fatalf("LoadFromFile returned an error: %v", err)
+	}
+
+	// Check that the values were updated
+	if cfg.BochaAPIKey != "test-api-key-from-file" {
+		t.Errorf("Expected BochaAPIKey to be 'test-api-key-from-file', got '%s'", cfg.BochaAPIKey)
+	}
+	if cfg.BochaAPIBaseURL != "https://test-from-file.api.com" {
+		t.Errorf("Expected BochaAPIBaseURL to be 'https://test-from-file.api.com', got '%s'", cfg.BochaAPIBaseURL)
+	}
+	if cfg.HTTPTimeout != 15*time.Second {
+		t.Errorf("Expected HTTPTimeout to be 15s, got %s", cfg.HTTPTimeout)
+	}
+	if cfg.ServerName != "Test Server From File" {
+		t.Errorf("Expected ServerName to be 'Test Server From File', got '%s'", cfg.ServerName)
+	}
+	if cfg.ServerVersion != "2.0.0" {
+		t.Errorf("Expected ServerVersion to be '2.0.0', got '%s'", cfg.ServerVersion)
+	}
+
+	// Test with invalid file path
+	err = cfg.LoadFromFile("/nonexistent/path/to/config.yaml")
+	if err == nil {
+		t.Error("Expected error for nonexistent file, got nil")
+	}
+
+	// Test with invalid YAML
+	invalidConfigPath := filepath.Join(tempDir, "invalid_config.yaml")
+	err = os.WriteFile(invalidConfigPath, []byte("invalid: yaml: content: - -"), 0600)
+	if err != nil {
+		t.Fatalf("Failed to create invalid config file: %v", err)
+	}
+
+	err = cfg.LoadFromFile(invalidConfigPath)
+	if err == nil {
+		t.Error("Expected error for invalid YAML, got nil")
+	}
+
+	// Test with invalid HTTP timeout
+	invalidTimeoutConfigPath := filepath.Join(tempDir, "invalid_timeout_config.yaml")
+	invalidTimeoutContent := `
+bocha_api_key: "test-key"
+http_timeout: "invalid-duration"
+`
+	err = os.WriteFile(invalidTimeoutConfigPath, []byte(invalidTimeoutContent), 0600)
+	if err != nil {
+		t.Fatalf("Failed to create invalid timeout config file: %v", err)
+	}
+
+	// Save the original timeout
+	originalTimeout := cfg.HTTPTimeout
+
+	err = cfg.LoadFromFile(invalidTimeoutConfigPath)
+	if err != nil {
+		t.Errorf("LoadFromFile returned an error for invalid timeout: %v", err)
+	}
+
+	// The timeout should not have changed
+	if cfg.HTTPTimeout != originalTimeout {
+		t.Errorf("Expected HTTPTimeout to remain %s, got %s", originalTimeout, cfg.HTTPTimeout)
 	}
 }

@@ -55,13 +55,13 @@
 			<div id="nav">
 				<select id="files">
 				
-				<option value="file0">com.moguyn/mcp-go-search/config/config.go (89.7%)</option>
+				<option value="file0">com.moguyn/mcp-go-search/config/config.go (91.0%)</option>
 				
-				<option value="file1">com.moguyn/mcp-go-search/main.go (0.0%)</option>
+				<option value="file1">com.moguyn/mcp-go-search/main.go (88.5%)</option>
 				
-				<option value="file2">com.moguyn/mcp-go-search/mcp/tools.go (93.8%)</option>
+				<option value="file2">com.moguyn/mcp-go-search/mcp/tools.go (89.5%)</option>
 				
-				<option value="file3">com.moguyn/mcp-go-search/search/service.go (80.0%)</option>
+				<option value="file3">com.moguyn/mcp-go-search/search/service.go (89.4%)</option>
 				
 				</select>
 			</div>
@@ -83,18 +83,23 @@ import (
         "os"
         "strconv"
         "time"
+
+        "gopkg.in/yaml.v3"
 )
 
 // Config holds the application configuration
 type Config struct {
         // API configuration
-        BochaAPIKey     string
-        BochaAPIBaseURL string
-        HTTPTimeout     time.Duration
+        BochaAPIKey     string        `yaml:"bocha_api_key" json:"bocha_api_key"`
+        BochaAPIBaseURL string        `yaml:"bocha_api_base_url" json:"bocha_api_base_url"`
+        HTTPTimeout     time.Duration `yaml:"-" json:"-"` // Custom handling for YAML/JSON
 
         // Server configuration
-        ServerName    string
-        ServerVersion string
+        ServerName    string `yaml:"server_name" json:"server_name"`
+        ServerVersion string `yaml:"server_version" json:"server_version"`
+
+        // Internal fields not for YAML/JSON
+        HTTPTimeoutStr string `yaml:"http_timeout" json:"http_timeout"`
 }
 
 // New creates a new configuration with values from environment variables
@@ -108,8 +113,35 @@ func New() *Config <span class="cov8" title="1">{
                 ServerVersion:   getEnvWithDefault("SERVER_VERSION", "1.0.0"),
         }
 
+        // Check if a config file path is provided
+        configPath := os.Getenv("CONFIG_FILE")
+        if configPath != "" </span><span class="cov0" title="0">{
+                if err := config.LoadFromFile(configPath); err != nil </span><span class="cov0" title="0">{
+                        log.Printf("Warning: Failed to load config from file %s: %v", configPath, err)
+                }</span> else<span class="cov0" title="0"> {
+                        log.Printf("Warning: Using configuration file for sensitive data like API keys is not recommended for production environments")
+                }</span>
+        }
+
+        // Environment variables take precedence over config file
+        <span class="cov8" title="1">if envAPIKey := os.Getenv("BOCHA_API_KEY"); envAPIKey != "" </span><span class="cov8" title="1">{
+                config.BochaAPIKey = envAPIKey
+        }</span>
+        <span class="cov8" title="1">if envAPIBaseURL := os.Getenv("BOCHA_API_BASE_URL"); envAPIBaseURL != "" </span><span class="cov8" title="1">{
+                config.BochaAPIBaseURL = envAPIBaseURL
+        }</span>
+        <span class="cov8" title="1">if envHTTPTimeout := os.Getenv("HTTP_TIMEOUT"); envHTTPTimeout != "" </span><span class="cov8" title="1">{
+                config.HTTPTimeout = getEnvDurationWithDefault("HTTP_TIMEOUT", config.HTTPTimeout)
+        }</span>
+        <span class="cov8" title="1">if envServerName := os.Getenv("SERVER_NAME"); envServerName != "" </span><span class="cov8" title="1">{
+                config.ServerName = envServerName
+        }</span>
+        <span class="cov8" title="1">if envServerVersion := os.Getenv("SERVER_VERSION"); envServerVersion != "" </span><span class="cov8" title="1">{
+                config.ServerVersion = envServerVersion
+        }</span>
+
         // Validate required configuration
-        if config.BochaAPIKey == "" </span><span class="cov8" title="1">{
+        <span class="cov8" title="1">if config.BochaAPIKey == "" </span><span class="cov8" title="1">{
                 log.Println("Warning: BOCHA_API_KEY environment variable not set. The search service will not work without an API key.")
         }</span>
 
@@ -124,6 +156,44 @@ func New() *Config <span class="cov8" title="1">{
         <span class="cov8" title="1">return config</span>
 }
 
+// LoadFromFile loads configuration from a YAML file
+func (c *Config) LoadFromFile(path string) error <span class="cov8" title="1">{
+        data, err := os.ReadFile(path)
+        if err != nil </span><span class="cov8" title="1">{
+                return fmt.Errorf("failed to read config file: %w", err)
+        }</span>
+
+        // Create a temporary config to unmarshal into
+        <span class="cov8" title="1">var fileConfig Config
+        if err := yaml.Unmarshal(data, &amp;fileConfig); err != nil </span><span class="cov8" title="1">{
+                return fmt.Errorf("failed to parse config file: %w", err)
+        }</span>
+
+        // Apply non-empty values from the file config
+        <span class="cov8" title="1">if fileConfig.BochaAPIKey != "" </span><span class="cov8" title="1">{
+                c.BochaAPIKey = fileConfig.BochaAPIKey
+        }</span>
+        <span class="cov8" title="1">if fileConfig.BochaAPIBaseURL != "" </span><span class="cov8" title="1">{
+                c.BochaAPIBaseURL = fileConfig.BochaAPIBaseURL
+        }</span>
+        <span class="cov8" title="1">if fileConfig.HTTPTimeoutStr != "" </span><span class="cov8" title="1">{
+                duration, err := time.ParseDuration(fileConfig.HTTPTimeoutStr)
+                if err == nil </span><span class="cov8" title="1">{
+                        c.HTTPTimeout = duration
+                }</span> else<span class="cov8" title="1"> {
+                        log.Printf("Warning: Invalid HTTP timeout in config file: %s", fileConfig.HTTPTimeoutStr)
+                }</span>
+        }
+        <span class="cov8" title="1">if fileConfig.ServerName != "" </span><span class="cov8" title="1">{
+                c.ServerName = fileConfig.ServerName
+        }</span>
+        <span class="cov8" title="1">if fileConfig.ServerVersion != "" </span><span class="cov8" title="1">{
+                c.ServerVersion = fileConfig.ServerVersion
+        }</span>
+
+        <span class="cov8" title="1">return nil</span>
+}
+
 // Validate performs additional validation on the configuration
 // and returns an error if the configuration is invalid
 func (c *Config) Validate() error <span class="cov8" title="1">{
@@ -133,6 +203,12 @@ func (c *Config) Validate() error <span class="cov8" title="1">{
 
         <span class="cov8" title="1">if c.BochaAPIBaseURL == "" </span><span class="cov8" title="1">{
                 return fmt.Errorf("BOCHA_API_BASE_URL cannot be empty")
+        }</span>
+
+        // Log a masked version of the API key for debugging
+        <span class="cov8" title="1">if len(c.BochaAPIKey) &gt; 8 </span><span class="cov8" title="1">{
+                maskedKey := c.BochaAPIKey[:4] + "..." + c.BochaAPIKey[len(c.BochaAPIKey)-4:]
+                log.Printf("Using Bocha API key: %s", maskedKey)
         }</span>
 
         <span class="cov8" title="1">return nil</span>
@@ -178,6 +254,7 @@ import (
         "fmt"
         "log"
         "os"
+        "time"
 
         "github.com/mark3labs/mcp-go/server"
 
@@ -186,20 +263,70 @@ import (
         "com.moguyn/mcp-go-search/search"
 )
 
-func main() <span class="cov0" title="0">{
+// Logger provides a simple structured logging interface
+type Logger struct {
+        prefix string
+}
+
+// NewLogger creates a new logger with the given prefix
+func NewLogger(prefix string) *Logger <span class="cov8" title="1">{
+        return &amp;Logger{prefix: prefix}
+}</span>
+
+// Info logs an informational message with structured data
+func (l *Logger) Info(msg string, data map[string]interface{}) <span class="cov8" title="1">{
+        l.log("INFO", msg, data)
+}</span>
+
+// Error logs an error message with structured data
+func (l *Logger) Error(msg string, err error, data map[string]interface{}) <span class="cov8" title="1">{
+        if data == nil </span><span class="cov0" title="0">{
+                data = make(map[string]interface{})
+        }</span>
+        <span class="cov8" title="1">if err != nil </span><span class="cov8" title="1">{
+                data["error"] = err.Error()
+        }</span>
+        <span class="cov8" title="1">l.log("ERROR", msg, data)</span>
+}
+
+// log formats and prints a log message
+func (l *Logger) log(level, msg string, data map[string]interface{}) <span class="cov8" title="1">{
+        timestamp := time.Now().Format(time.RFC3339)
+
+        // Format the data as key=value pairs
+        dataStr := ""
+        for k, v := range data </span><span class="cov8" title="1">{
+                dataStr += fmt.Sprintf(" %s=%v", k, v)
+        }</span>
+
+        <span class="cov8" title="1">log.Printf("%s [%s] %s: %s%s", timestamp, level, l.prefix, msg, dataStr)</span>
+}
+
+// serveStdio is a variable that can be overridden in tests
+var serveStdio = server.ServeStdio
+
+// runServer is the main application logic, extracted for testability
+func runServer() error <span class="cov8" title="1">{
+        logger := NewLogger("main")
+
+        // Log startup
+        logger.Info("Starting server", map[string]interface{}{
+                "time": time.Now().Format(time.RFC3339),
+        })
+
         // Load configuration
         cfg := config.New()
 
         // Validate configuration
-        if err := cfg.Validate(); err != nil </span><span class="cov0" title="0">{
-                log.Printf("Configuration error: %v", err)
-                log.Println("Please set the BOCHA_API_KEY environment variable.")
-                log.Println("Example: export BOCHA_API_KEY=\"your-api-key-here\"")
-                os.Exit(1)
+        if err := cfg.Validate(); err != nil </span><span class="cov8" title="1">{
+                logger.Error("Configuration error", err, map[string]interface{}{
+                        "suggestion": "Please set the BOCHA_API_KEY environment variable.",
+                })
+                return err
         }</span>
 
         // Create a new MCP server
-        <span class="cov0" title="0">s := server.NewMCPServer(
+        <span class="cov8" title="1">s := server.NewMCPServer(
                 cfg.ServerName,
                 cfg.ServerVersion,
                 server.WithLogging(),
@@ -215,9 +342,16 @@ func main() <span class="cov0" title="0">{
         s.AddTool(searchTool.Definition(), searchTool.Handler())
 
         // Start the server
-        log.Printf("Starting %s v%s...", cfg.ServerName, cfg.ServerVersion)
-        if err := server.ServeStdio(s); err != nil </span><span class="cov0" title="0">{
-                fmt.Printf("Server error: %v\n", err)
+        logger.Info("Server ready", map[string]interface{}{
+                "name":    cfg.ServerName,
+                "version": cfg.ServerVersion,
+        })
+
+        return serveStdio(s)</span>
+}
+
+func main() <span class="cov0" title="0">{
+        if err := runServer(); err != nil </span><span class="cov0" title="0">{
                 os.Exit(1)
         }</span>
 }
@@ -272,17 +406,30 @@ func (t *SearchTool) Definition() mcp.Tool <span class="cov8" title="1">{
 // Handler returns the MCP tool handler function
 func (t *SearchTool) Handler() func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) <span class="cov8" title="1">{
         return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) </span><span class="cov8" title="1">{
+                // Create a timeout context to prevent long-running searches
+                ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+                defer cancel()
+
                 // Extract parameters from the request
                 query, ok := request.Params.Arguments["query"].(string)
                 if !ok || query == "" </span><span class="cov8" title="1">{
                         return mcp.NewToolResultError("query parameter is required and must be a string"), nil
                 }</span>
 
+                // Validate query length to prevent abuse
+                <span class="cov8" title="1">if len(query) &gt; 1000 </span><span class="cov0" title="0">{
+                        return mcp.NewToolResultError("query is too long (maximum 1000 characters)"), nil
+                }</span>
+
                 // Extract optional parameters with defaults
                 <span class="cov8" title="1">freshness := "noLimit"
                 if f, ok := request.Params.Arguments["freshness"].(string); ok &amp;&amp; f != "" </span><span class="cov8" title="1">{
-                        freshness = f
-                }</span>
+                        // Validate freshness parameter
+                        if f != "noLimit" &amp;&amp; f != "day" &amp;&amp; f != "week" &amp;&amp; f != "month" </span><span class="cov0" title="0">{
+                                return mcp.NewToolResultError(fmt.Sprintf("invalid freshness value: %q, must be one of: noLimit, day, week, month", f)), nil
+                        }</span>
+                        <span class="cov8" title="1">freshness = f</span>
+                }
 
                 <span class="cov8" title="1">count := 10
                 if c, ok := request.Params.Arguments["count"].(float64); ok </span><span class="cov8" title="1">{
@@ -303,8 +450,15 @@ func (t *SearchTool) Handler() func(ctx context.Context, request mcp.CallToolReq
                 // Perform the search
                 <span class="cov8" title="1">response, err := t.searchService.Search(ctx, query, freshness, count, answer)
                 if err != nil </span><span class="cov0" title="0">{
-                        return mcp.NewToolResultError(fmt.Sprintf("Search failed: %v", err)), nil
-                }</span>
+                        // Handle context cancellation
+                        if ctx.Err() == context.DeadlineExceeded </span><span class="cov0" title="0">{
+                                return mcp.NewToolResultError("Search timed out after 30 seconds"), nil
+                        }</span>
+
+                        // Sanitize error message to prevent leaking sensitive information
+                        <span class="cov0" title="0">errMsg := sanitizeErrorMessage(err.Error())
+                        return mcp.NewToolResultError(fmt.Sprintf("Search failed: %v", errMsg)), nil</span>
+                }
 
                 // Format the results
                 <span class="cov8" title="1">var resultBuilder strings.Builder
@@ -371,6 +525,48 @@ func formatDate(dateStr string) string <span class="cov8" title="1">{
         // Return the original string if parsing fails
         <span class="cov8" title="1">return dateStr</span>
 }
+
+// sanitizeErrorMessage removes potentially sensitive information from error messages
+func sanitizeErrorMessage(errMsg string) string <span class="cov8" title="1">{
+        // Remove any API keys that might be in the error message
+        // This is a simple implementation - in a production environment,
+        // you might want to use a more sophisticated approach
+        if strings.Contains(errMsg, "Bearer ") </span><span class="cov8" title="1">{
+                parts := strings.Split(errMsg, "Bearer ")
+                if len(parts) &gt; 1 </span><span class="cov8" title="1">{
+                        // Find the end of the token
+                        tokenEnd := strings.IndexAny(parts[1], " \t\n\r\",;:)")
+                        if tokenEnd != -1 </span><span class="cov8" title="1">{
+                                parts[1] = "[REDACTED]" + parts[1][tokenEnd:]
+                                errMsg = strings.Join(parts, "Bearer ")
+                        }</span> else<span class="cov8" title="1"> {
+                                // If we can't find the end of the token, it might be at the end of the string
+                                parts[1] = "[REDACTED]"
+                                errMsg = strings.Join(parts, "Bearer ")
+                        }</span>
+                }
+        }
+
+        // Remove any URLs that might contain sensitive information
+        <span class="cov8" title="1">if strings.Contains(errMsg, "http") </span><span class="cov8" title="1">{
+                // Simple regex-like replacement for URLs
+                for _, prefix := range []string{"http://", "https://"} </span><span class="cov8" title="1">{
+                        if idx := strings.Index(errMsg, prefix); idx != -1 </span><span class="cov8" title="1">{
+                                start := idx
+                                end := start + len(prefix)
+                                // Find the end of the URL
+                                for end &lt; len(errMsg) &amp;&amp; !strings.ContainsAny(string(errMsg[end]), " \t\n\r\",;:)") </span><span class="cov8" title="1">{
+                                        end++
+                                }</span>
+                                <span class="cov8" title="1">if end &gt; start+len(prefix) </span><span class="cov8" title="1">{
+                                        errMsg = errMsg[:start] + "[URL REDACTED]" + errMsg[end:]
+                                }</span>
+                        }
+                }
+        }
+
+        <span class="cov8" title="1">return errMsg</span>
+}
 </pre>
 		
 		<pre class="file" id="file3" style="display: none">package search
@@ -378,10 +574,14 @@ func formatDate(dateStr string) string <span class="cov8" title="1">{
 import (
         "bytes"
         "context"
+        "crypto/tls"
         "encoding/json"
         "fmt"
         "io"
         "net/http"
+        "time"
+
+        "golang.org/x/time/rate"
 
         "com.moguyn/mcp-go-search/config"
 )
@@ -416,9 +616,10 @@ type Service interface {
 
 // BochaService implements the Service interface for Bocha AI Search API
 type BochaService struct {
-        apiKey     string
-        apiBaseURL string
-        httpClient *http.Client
+        apiKey      string
+        apiBaseURL  string
+        httpClient  *http.Client
+        rateLimiter *rate.Limiter
 }
 
 // NewBochaService creates a new instance of the BochaService
@@ -428,20 +629,48 @@ func NewBochaService() *BochaService <span class="cov8" title="1">{
 
 // NewBochaServiceWithConfig creates a new instance of the BochaService with the provided configuration
 func NewBochaServiceWithConfig(cfg *config.Config) *BochaService <span class="cov8" title="1">{
+        // Create a secure transport with modern TLS configuration
+        transport := &amp;http.Transport{
+                TLSClientConfig: &amp;tls.Config{
+                        MinVersion: tls.VersionTLS12,
+                },
+                ForceAttemptHTTP2: true,
+                MaxIdleConns:      100,
+                IdleConnTimeout:   90 * time.Second,
+        }
+
+        // Create a rate limiter that allows 10 requests per second with a burst of 20
+        limiter := rate.NewLimiter(rate.Limit(10), 20)
+
         return &amp;BochaService{
                 apiKey:     cfg.BochaAPIKey,
                 apiBaseURL: cfg.BochaAPIBaseURL,
                 httpClient: &amp;http.Client{
-                        Timeout: cfg.HTTPTimeout,
+                        Timeout:   cfg.HTTPTimeout,
+                        Transport: transport,
                 },
+                rateLimiter: limiter,
         }
 }</span>
 
 // Search performs a search using the Bocha AI Search API
 func (s *BochaService) Search(ctx context.Context, query string, freshness string, count int, answer bool) (*Response, error) <span class="cov8" title="1">{
+        // Apply rate limiting
+        if err := s.rateLimiter.Wait(ctx); err != nil </span><span class="cov8" title="1">{
+                return nil, fmt.Errorf("rate limit exceeded: %w", err)
+        }</span>
+
         // Validate inputs
-        if query == "" </span><span class="cov8" title="1">{
+        <span class="cov8" title="1">if query == "" </span><span class="cov8" title="1">{
                 return nil, fmt.Errorf("search query cannot be empty")
+        }</span>
+
+        // Sanitize the query to prevent potential injection attacks
+        <span class="cov8" title="1">query = sanitizeQuery(query)
+
+        // Validate freshness parameter if provided
+        if freshness != "" &amp;&amp; freshness != "noLimit" &amp;&amp; freshness != "day" &amp;&amp; freshness != "week" &amp;&amp; freshness != "month" </span><span class="cov8" title="1">{
+                return nil, fmt.Errorf("invalid freshness value: %q, must be one of: noLimit, day, week, month", freshness)
         }</span>
 
         <span class="cov8" title="1">if count &lt; 1 </span><span class="cov8" title="1">{
@@ -474,6 +703,7 @@ func (s *BochaService) Search(ctx context.Context, query string, freshness strin
         // Set headers
         <span class="cov8" title="1">req.Header.Set("Content-Type", "application/json")
         req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", s.apiKey))
+        req.Header.Set("User-Agent", "BochaAISearchMCPServer/1.0")
 
         // Send the request
         resp, err := s.httpClient.Do(req)
@@ -482,24 +712,53 @@ func (s *BochaService) Search(ctx context.Context, query string, freshness strin
         }</span>
         <span class="cov8" title="1">defer resp.Body.Close()
 
-        // Read the response body
-        body, err := io.ReadAll(resp.Body)
+        // Read the response body with a size limit to prevent memory exhaustion
+        body, err := io.ReadAll(io.LimitReader(resp.Body, 10*1024*1024)) // 10MB limit
         if err != nil </span><span class="cov0" title="0">{
                 return nil, fmt.Errorf("failed to read Bocha API response body: %w", err)
         }</span>
 
         // Check for non-200 status code
-        <span class="cov8" title="1">if resp.StatusCode != http.StatusOK </span><span class="cov0" title="0">{
-                return nil, fmt.Errorf("Bocha API returned status code %d: %s", resp.StatusCode, string(body))
-        }</span>
+        <span class="cov8" title="1">if resp.StatusCode != http.StatusOK </span><span class="cov8" title="1">{
+                // Try to extract error message from response if possible
+                var errorResp struct {
+                        Error string `json:"error"`
+                }
+                if err := json.Unmarshal(body, &amp;errorResp); err == nil &amp;&amp; errorResp.Error != "" </span><span class="cov8" title="1">{
+                        return nil, fmt.Errorf("Bocha API error (status %d): %s", resp.StatusCode, errorResp.Error)
+                }</span>
+
+                // Don't return the full response body in case of error to avoid leaking sensitive information
+                <span class="cov0" title="0">return nil, fmt.Errorf("Bocha API returned status code %d", resp.StatusCode)</span>
+        }
 
         // Parse the response
         <span class="cov8" title="1">var searchResp Response
-        if err := json.Unmarshal(body, &amp;searchResp); err != nil </span><span class="cov0" title="0">{
+        if err := json.Unmarshal(body, &amp;searchResp); err != nil </span><span class="cov8" title="1">{
                 return nil, fmt.Errorf("failed to parse Bocha API response: %w", err)
         }</span>
 
+        // Validate response
+        <span class="cov8" title="1">if searchResp.Results == nil </span><span class="cov8" title="1">{
+                return nil, fmt.Errorf("Bocha API returned empty or invalid response")
+        }</span>
+
         <span class="cov8" title="1">return &amp;searchResp, nil</span>
+}
+
+// sanitizeQuery performs basic sanitization on the search query
+// to prevent potential injection attacks
+func sanitizeQuery(query string) string <span class="cov8" title="1">{
+        // This is a simple implementation - in a production environment,
+        // you might want to use a more sophisticated sanitization library
+
+        // Limit query length to prevent DoS attacks
+        const maxQueryLength = 1000
+        if len(query) &gt; maxQueryLength </span><span class="cov8" title="1">{
+                query = query[:maxQueryLength]
+        }</span>
+
+        <span class="cov8" title="1">return query</span>
 }
 </pre>
 		

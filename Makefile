@@ -1,4 +1,4 @@
-.PHONY: build run test lint clean help release release-snapshot run-config
+.PHONY: build run test lint clean help release release-snapshot run-config sec-scan sec-deps sec-tidy
 
 # Binary name
 BINARY_NAME=mcp-search-server
@@ -90,21 +90,49 @@ release-snapshot:
 	@echo "Creating a snapshot release..."
 	@goreleaser release --snapshot --clean
 
+# Run security scans
+sec-scan: sec-deps sec-tidy
+	@echo "Running security scans..."
+	@govulncheck ./...
+
+# Install security scanning dependencies
+sec-deps:
+	@echo "Installing security scanning dependencies..."
+	@go install golang.org/x/vuln/cmd/govulncheck@latest
+
+# Check for unused dependencies that might introduce vulnerabilities
+sec-tidy:
+	@echo "Checking for unused dependencies..."
+	@go mod tidy
+	@echo "Verifying dependencies..."
+	@go mod verify
+
 # Show help
 help:
-	@echo "Available targets:"
-	@echo "  build           - Build the application"
-	@echo "  run             - Build and run the application (requires API_KEY)"
-	@echo "  run-custom      - Run with custom configuration options"
-	@echo "  run-config      - Run with a JSON configuration file"
-	@echo "  test            - Run tests"
-	@echo "  test-coverage   - Run tests with coverage report"
-	@echo "  lint            - Run linter"
-	@echo "  clean           - Remove build artifacts"
-	@echo "  deps            - Update dependencies"
-	@echo "  release         - Create a new release using GoReleaser"
-	@echo "  release-snapshot - Create a snapshot release for testing"
-	@echo "  help            - Show this help message"
+	@echo "Usage: make [target]"
+	@echo ""
+	@echo "Targets:"
+	@echo "  run                  Run the server with API key from environment"
+	@echo "  run-custom           Run with custom configuration from environment"
+	@echo "  run-config           Run with configuration from a file"
+	@echo "  build                Build the server binary"
+	@echo "  test                 Run tests"
+	@echo "  cover                Run tests with coverage"
+	@echo "  cover-html           Generate HTML coverage report"
+	@echo "  lint                 Run linter"
+	@echo "  deps                 Update dependencies"
+	@echo "  clean                Clean build artifacts"
+	@echo "  sec-scan             Run security vulnerability scans"
+	@echo "  sec-deps             Install security scanning dependencies"
+	@echo "  sec-tidy             Check for unused dependencies"
+	@echo ""
+	@echo "Environment variables:"
+	@echo "  API_KEY              Bocha AI API key"
+	@echo "  API_BASE_URL         Bocha AI API base URL"
+	@echo "  HTTP_TIMEOUT         HTTP timeout duration"
+	@echo "  SERVER_NAME          Server name"
+	@echo "  SERVER_VERSION       Server version"
+	@echo "  CONFIG_FILE          Path to configuration file"
 	@echo ""
 	@echo "Examples:"
 	@echo "  make run API_KEY=your-api-key-here"

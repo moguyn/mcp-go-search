@@ -47,15 +47,28 @@ func (t *SearchTool) Definition() mcp.Tool {
 // Handler returns the MCP tool handler function
 func (t *SearchTool) Handler() func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		// Create a timeout context to prevent long-running searches
+		ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+		defer cancel()
+
 		// Extract parameters from the request
 		query, ok := request.Params.Arguments["query"].(string)
 		if !ok || query == "" {
 			return mcp.NewToolResultError("query parameter is required and must be a string"), nil
 		}
 
+		// Validate query length to prevent abuse
+		if len(query) > 1000 {
+			return mcp.NewToolResultError("query is too long (maximum 1000 characters)"), nil
+		}
+
 		// Extract optional parameters with defaults
 		freshness := "noLimit"
 		if f, ok := request.Params.Arguments["freshness"].(string); ok && f != "" {
+			// Validate freshness parameter
+			if f != "noLimit" && f != "day" && f != "week" && f != "month" {
+				return mcp.NewToolResultError(fmt.Sprintf("invalid freshness value: %q, must be one of: noLimit, day, week, month", f)), nil
+			}
 			freshness = f
 		}
 
@@ -78,7 +91,14 @@ func (t *SearchTool) Handler() func(ctx context.Context, request mcp.CallToolReq
 		// Perform the search
 		response, err := t.searchService.Search(ctx, query, freshness, count, answer)
 		if err != nil {
-			return mcp.NewToolResultError(fmt.Sprintf("Search failed: %v", err)), nil
+			// Handle context cancellation
+			if ctx.Err() == context.DeadlineExceeded {
+				return mcp.NewToolResultError("Search timed out after 30 seconds"), nil
+			}
+
+			// Sanitize error message to prevent leaking sensitive information
+			errMsg := sanitizeErrorMessage(err.Error())
+			return mcp.NewToolResultError(fmt.Sprintf("Search failed: %v", errMsg)), nil
 		}
 
 		// Format the results
@@ -145,4 +165,46 @@ func formatDate(dateStr string) string {
 
 	// Return the original string if parsing fails
 	return dateStr
+}
+
+// sanitizeErrorMessage removes potentially sensitive information from error messages
+func sanitizeErrorMessage(errMsg string) string {
+	// Remove any API keys that might be in the error message
+	// This is a simple implementation - in a production environment,
+	// you might want to use a more sophisticated approach
+	if strings.Contains(errMsg, "Bearer ") {
+		parts := strings.Split(errMsg, "Bearer ")
+		if len(parts) > 1 {
+			// Find the end of the token
+			tokenEnd := strings.IndexAny(parts[1], " \t\n\r\",;:)")
+			if tokenEnd != -1 {
+				parts[1] = "[REDACTED]" + parts[1][tokenEnd:]
+				errMsg = strings.Join(parts, "Bearer ")
+			} else {
+				// If we can't find the end of the token, it might be at the end of the string
+				parts[1] = "[REDACTED]"
+				errMsg = strings.Join(parts, "Bearer ")
+			}
+		}
+	}
+
+	// Remove any URLs that might contain sensitive information
+	if strings.Contains(errMsg, "http") {
+		// Simple regex-like replacement for URLs
+		for _, prefix := range []string{"http://", "https://"} {
+			if idx := strings.Index(errMsg, prefix); idx != -1 {
+				start := idx
+				end := start + len(prefix)
+				// Find the end of the URL
+				for end < len(errMsg) && !strings.ContainsAny(string(errMsg[end]), " \t\n\r\",;:)") {
+					end++
+				}
+				if end > start+len(prefix) {
+					errMsg = errMsg[:start] + "[URL REDACTED]" + errMsg[end:]
+				}
+			}
+		}
+	}
+
+	return errMsg
 }

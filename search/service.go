@@ -3,10 +3,14 @@ package search
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"time"
+
+	"golang.org/x/time/rate"
 
 	"com.moguyn/mcp-go-search/config"
 )
@@ -41,9 +45,10 @@ type Service interface {
 
 // BochaService implements the Service interface for Bocha AI Search API
 type BochaService struct {
-	apiKey     string
-	apiBaseURL string
-	httpClient *http.Client
+	apiKey      string
+	apiBaseURL  string
+	httpClient  *http.Client
+	rateLimiter *rate.Limiter
 }
 
 // NewBochaService creates a new instance of the BochaService
@@ -53,21 +58,44 @@ func NewBochaService() *BochaService {
 
 // NewBochaServiceWithConfig creates a new instance of the BochaService with the provided configuration
 func NewBochaServiceWithConfig(cfg *config.Config) *BochaService {
+	// Create a secure transport with modern TLS configuration
+	transport := &http.Transport{
+		TLSClientConfig: &tls.Config{
+			MinVersion: tls.VersionTLS12,
+		},
+		ForceAttemptHTTP2: true,
+		MaxIdleConns:      100,
+		IdleConnTimeout:   90 * time.Second,
+	}
+
+	// Create a rate limiter that allows 10 requests per second with a burst of 20
+	limiter := rate.NewLimiter(rate.Limit(10), 20)
+
 	return &BochaService{
 		apiKey:     cfg.BochaAPIKey,
 		apiBaseURL: cfg.BochaAPIBaseURL,
 		httpClient: &http.Client{
-			Timeout: cfg.HTTPTimeout,
+			Timeout:   cfg.HTTPTimeout,
+			Transport: transport,
 		},
+		rateLimiter: limiter,
 	}
 }
 
 // Search performs a search using the Bocha AI Search API
 func (s *BochaService) Search(ctx context.Context, query string, freshness string, count int, answer bool) (*Response, error) {
+	// Apply rate limiting
+	if err := s.rateLimiter.Wait(ctx); err != nil {
+		return nil, fmt.Errorf("rate limit exceeded: %w", err)
+	}
+
 	// Validate inputs
 	if query == "" {
 		return nil, fmt.Errorf("search query cannot be empty")
 	}
+
+	// Sanitize the query to prevent potential injection attacks
+	query = sanitizeQuery(query)
 
 	// Validate freshness parameter if provided
 	if freshness != "" && freshness != "noLimit" && freshness != "day" && freshness != "week" && freshness != "month" {
@@ -104,6 +132,7 @@ func (s *BochaService) Search(ctx context.Context, query string, freshness strin
 	// Set headers
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", s.apiKey))
+	req.Header.Set("User-Agent", "BochaAISearchMCPServer/1.0")
 
 	// Send the request
 	resp, err := s.httpClient.Do(req)
@@ -112,8 +141,8 @@ func (s *BochaService) Search(ctx context.Context, query string, freshness strin
 	}
 	defer resp.Body.Close()
 
-	// Read the response body
-	body, err := io.ReadAll(resp.Body)
+	// Read the response body with a size limit to prevent memory exhaustion
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 10*1024*1024)) // 10MB limit
 	if err != nil {
 		return nil, fmt.Errorf("failed to read Bocha API response body: %w", err)
 	}
@@ -127,7 +156,9 @@ func (s *BochaService) Search(ctx context.Context, query string, freshness strin
 		if err := json.Unmarshal(body, &errorResp); err == nil && errorResp.Error != "" {
 			return nil, fmt.Errorf("Bocha API error (status %d): %s", resp.StatusCode, errorResp.Error)
 		}
-		return nil, fmt.Errorf("Bocha API returned status code %d: %s", resp.StatusCode, string(body))
+
+		// Don't return the full response body in case of error to avoid leaking sensitive information
+		return nil, fmt.Errorf("Bocha API returned status code %d", resp.StatusCode)
 	}
 
 	// Parse the response
@@ -142,4 +173,19 @@ func (s *BochaService) Search(ctx context.Context, query string, freshness strin
 	}
 
 	return &searchResp, nil
+}
+
+// sanitizeQuery performs basic sanitization on the search query
+// to prevent potential injection attacks
+func sanitizeQuery(query string) string {
+	// This is a simple implementation - in a production environment,
+	// you might want to use a more sophisticated sanitization library
+
+	// Limit query length to prevent DoS attacks
+	const maxQueryLength = 1000
+	if len(query) > maxQueryLength {
+		query = query[:maxQueryLength]
+	}
+
+	return query
 }

@@ -41,6 +41,8 @@ func New() *Config {
 	if configPath != "" {
 		if err := config.LoadFromFile(configPath); err != nil {
 			log.Printf("Warning: Failed to load config from file %s: %v", configPath, err)
+		} else {
+			log.Printf("Warning: Using configuration file for sensitive data like API keys is not recommended for production environments")
 		}
 	}
 
@@ -124,6 +126,12 @@ func (c *Config) Validate() error {
 
 	if c.BochaAPIBaseURL == "" {
 		return fmt.Errorf("BOCHA_API_BASE_URL cannot be empty")
+	}
+
+	// Log a masked version of the API key for debugging
+	if len(c.BochaAPIKey) > 8 {
+		maskedKey := c.BochaAPIKey[:4] + "..." + c.BochaAPIKey[len(c.BochaAPIKey)-4:]
+		log.Printf("Using Bocha API key: %s", maskedKey)
 	}
 
 	return nil

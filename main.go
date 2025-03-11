@@ -52,7 +52,11 @@ func (l *Logger) log(level, msg string, data map[string]interface{}) {
 	log.Printf("%s [%s] %s: %s%s", timestamp, level, l.prefix, msg, dataStr)
 }
 
-func main() {
+// serveStdio is a variable that can be overridden in tests
+var serveStdio = server.ServeStdio
+
+// runServer is the main application logic, extracted for testability
+func runServer() error {
 	logger := NewLogger("main")
 
 	// Log startup
@@ -68,7 +72,7 @@ func main() {
 		logger.Error("Configuration error", err, map[string]interface{}{
 			"suggestion": "Please set the BOCHA_API_KEY environment variable.",
 		})
-		os.Exit(1)
+		return err
 	}
 
 	// Create a new MCP server
@@ -93,8 +97,11 @@ func main() {
 		"version": cfg.ServerVersion,
 	})
 
-	if err := server.ServeStdio(s); err != nil {
-		logger.Error("Server error", err, nil)
+	return serveStdio(s)
+}
+
+func main() {
+	if err := runServer(); err != nil {
 		os.Exit(1)
 	}
 }

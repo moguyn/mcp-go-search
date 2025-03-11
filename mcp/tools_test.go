@@ -171,7 +171,7 @@ func TestHandler(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// Create a mock search service
 			mockService := &MockSearchService{
-				SearchFunc: func(ctx context.Context, query string, freshness string, count int, answer bool) (*search.Response, error) {
+				SearchFunc: func(_ context.Context, _ string, _ string, _ int, _ bool) (*search.Response, error) {
 					return tc.mockResponse, tc.mockError
 				},
 			}
@@ -223,7 +223,7 @@ func TestHandler(t *testing.T) {
 					}
 
 					// Check that result text contains the title of the first result
-					if tc.mockResponse.Results != nil && len(tc.mockResponse.Results) > 0 {
+					if len(tc.mockResponse.Results) > 0 {
 						if !strings.Contains(resultText, tc.mockResponse.Results[0].Title) {
 							t.Errorf("Expected result text to contain '%s'", tc.mockResponse.Results[0].Title)
 						}
@@ -277,6 +277,59 @@ func TestFormatDate(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.input, func(t *testing.T) {
 			result := formatDate(tc.input)
+			if result != tc.expected {
+				t.Errorf("Expected '%s', got '%s'", tc.expected, result)
+			}
+		})
+	}
+}
+
+func TestSanitizeErrorMessage(t *testing.T) {
+	testCases := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "No sensitive information",
+			input:    "Simple error message",
+			expected: "Simple error message",
+		},
+		{
+			name:     "Contains API key in Bearer token",
+			input:    "Error with Authorization: Bearer abc123secret456token789",
+			expected: "Error with Authorization: Bearer [REDACTED]",
+		},
+		{
+			name:     "Contains URL with http",
+			input:    "Failed to connect to http://api.example.com/v1/endpoint",
+			expected: "Failed to connect to [URL REDACTED]",
+		},
+		{
+			name:     "Contains URL with https",
+			input:    "Failed to connect to https://api.example.com/v1/endpoint",
+			expected: "Failed to connect to [URL REDACTED]",
+		},
+		{
+			name:     "Contains both Bearer token and URL",
+			input:    "Error with Authorization: Bearer abc123secret456token789 when connecting to https://api.example.com",
+			expected: "Error with Authorization: Bearer [REDACTED] when connecting to [URL REDACTED]",
+		},
+		{
+			name:     "Bearer token at end of string",
+			input:    "Error with Authorization: Bearer abc123secret456token789",
+			expected: "Error with Authorization: Bearer [REDACTED]",
+		},
+		{
+			name:     "URL at end of string",
+			input:    "Failed to connect to https://api.example.com",
+			expected: "Failed to connect to [URL REDACTED]",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := sanitizeErrorMessage(tc.input)
 			if result != tc.expected {
 				t.Errorf("Expected '%s', got '%s'", tc.expected, result)
 			}

@@ -17,6 +17,12 @@ This server implements the [Model Context Protocol (MCP)](https://modelcontextpr
 - Optional answer generation based on search results
 - Clean, formatted search results
 - CI/CD with GitHub Actions
+- Enhanced security features:
+  - API key protection
+  - Input validation and sanitization
+  - Rate limiting to prevent abuse
+  - Secure error handling
+  - TLS 1.2+ support
 
 ## Prerequisites
 
@@ -185,3 +191,30 @@ The server follows SOLID principles:
 ## License
 
 MIT 
+
+## Security
+
+This project implements several security features to protect your API keys and prevent abuse:
+
+- API key masking in logs
+- Input validation and sanitization
+- Rate limiting
+- Request timeouts
+- Secure error handling to prevent information leakage
+- TLS 1.2+ support
+
+For detailed security guidelines, please see the [SECURITY.md](SECURITY.md) file.
+
+### API Key Security
+
+It is strongly recommended to use environment variables for your API key rather than configuration files:
+
+```bash
+export BOCHA_API_KEY="your-api-key-here"
+```
+
+If you must use a configuration file, ensure it is not committed to version control and has restricted permissions:
+
+```bash
+chmod 600 config.yaml
+``` 
