@@ -22,6 +22,7 @@ This server implements the [Model Context Protocol (MCP)](https://modelcontextpr
 
 - Go 1.20 or higher
 - A Bocha AI API key
+- Make (for using the Makefile)
 
 ## Installation
 
@@ -38,12 +39,26 @@ This server implements the [Model Context Protocol (MCP)](https://modelcontextpr
 
 ## Usage
 
-### Quick Start with run.sh
+### Quick Start with Make
 
-The easiest way to run the server is using the provided script:
+The easiest way to run the server is using the provided Makefile:
 
 ```bash
-./run.sh your-bocha-api-key-here
+make run API_KEY=your-bocha-api-key-here
+```
+
+For a list of all available make targets:
+
+```bash
+make help
+```
+
+### Running with Custom Configuration
+
+You can customize the server configuration:
+
+```bash
+make run-custom API_KEY=your-api-key-here API_BASE_URL=https://custom-url.com HTTP_TIMEOUT=5s SERVER_NAME="Custom Server" SERVER_VERSION="2.0.0"
 ```
 
 ### Manual Configuration and Running
@@ -102,7 +117,7 @@ Here's an example of how an LLM might use the search tool:
 ### Running Tests
 
 ```bash
-go test ./...
+make test
 ```
 
 ### Linting
@@ -110,7 +125,19 @@ go test ./...
 This project uses golangci-lint for code quality. To run the linter:
 
 ```bash
-golangci-lint run
+make lint
+```
+
+### Cleaning Build Artifacts
+
+```bash
+make clean
+```
+
+### Updating Dependencies
+
+```bash
+make deps
 ```
 
 ### CI/CD
