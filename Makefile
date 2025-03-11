@@ -1,4 +1,4 @@
-.PHONY: build run test lint clean help
+.PHONY: build run test lint clean help release release-snapshot
 
 # Binary name
 BINARY_NAME=mcp-search-server
@@ -62,18 +62,31 @@ deps:
 	@echo "Updating dependencies..."
 	@$(GOMOD) tidy
 
+# Create a new release using GoReleaser
+release:
+	@echo "Creating a new release..."
+	@goreleaser release --clean
+
+# Create a snapshot release for testing
+release-snapshot:
+	@echo "Creating a snapshot release..."
+	@goreleaser release --snapshot --clean
+
 # Show help
 help:
 	@echo "Available targets:"
-	@echo "  build        - Build the application"
-	@echo "  run          - Build and run the application (requires API_KEY)"
-	@echo "  run-custom   - Run with custom configuration options"
-	@echo "  test         - Run tests"
-	@echo "  lint         - Run linter"
-	@echo "  clean        - Remove build artifacts"
-	@echo "  deps         - Update dependencies"
-	@echo "  help         - Show this help message"
+	@echo "  build           - Build the application"
+	@echo "  run             - Build and run the application (requires API_KEY)"
+	@echo "  run-custom      - Run with custom configuration options"
+	@echo "  test            - Run tests"
+	@echo "  lint            - Run linter"
+	@echo "  clean           - Remove build artifacts"
+	@echo "  deps            - Update dependencies"
+	@echo "  release         - Create a new release using GoReleaser"
+	@echo "  release-snapshot - Create a snapshot release for testing"
+	@echo "  help            - Show this help message"
 	@echo ""
 	@echo "Examples:"
 	@echo "  make run API_KEY=your-api-key-here"
-	@echo "  make run-custom API_KEY=your-api-key-here API_BASE_URL=https://custom-url.com HTTP_TIMEOUT=5s" 
+	@echo "  make run-custom API_KEY=your-api-key-here API_BASE_URL=https://custom-url.com HTTP_TIMEOUT=5s"
+	@echo "  make release-snapshot" 
