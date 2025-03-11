@@ -61,6 +61,29 @@ You can customize the server configuration:
 make run-custom API_KEY=your-api-key-here API_BASE_URL=https://custom-url.com HTTP_TIMEOUT=5s SERVER_NAME="Custom Server" SERVER_VERSION="2.0.0"
 ```
 
+### Running with a Configuration File
+
+You can also use a YAML configuration file:
+
+1. Create a config.yaml file (see config.yaml.example for reference):
+   ```yaml
+   # Bocha AI Search Server Configuration
+   
+   # API configuration
+   bocha_api_key: "your-api-key-here"
+   bocha_api_base_url: "https://api.bochaai.com/v1/ai-search"
+   http_timeout: "10s"
+   
+   # Server configuration
+   server_name: "Bocha AI Search Server"
+   server_version: "1.0.0"
+   ```
+
+2. Run the server with the config file:
+   ```bash
+   make run-config CONFIG_FILE=./config.yaml
+   ```
+
 ### Manual Configuration and Running
 
 1. Set your Bocha AI API key as an environment variable:

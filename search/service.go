@@ -69,6 +69,11 @@ func (s *BochaService) Search(ctx context.Context, query string, freshness strin
 		return nil, fmt.Errorf("search query cannot be empty")
 	}
 
+	// Validate freshness parameter if provided
+	if freshness != "" && freshness != "noLimit" && freshness != "day" && freshness != "week" && freshness != "month" {
+		return nil, fmt.Errorf("invalid freshness value: %q, must be one of: noLimit, day, week, month", freshness)
+	}
+
 	if count < 1 {
 		count = 1
 	} else if count > 50 {
@@ -115,6 +120,13 @@ func (s *BochaService) Search(ctx context.Context, query string, freshness strin
 
 	// Check for non-200 status code
 	if resp.StatusCode != http.StatusOK {
+		// Try to extract error message from response if possible
+		var errorResp struct {
+			Error string `json:"error"`
+		}
+		if err := json.Unmarshal(body, &errorResp); err == nil && errorResp.Error != "" {
+			return nil, fmt.Errorf("Bocha API error (status %d): %s", resp.StatusCode, errorResp.Error)
+		}
 		return nil, fmt.Errorf("Bocha API returned status code %d: %s", resp.StatusCode, string(body))
 	}
 
@@ -122,6 +134,11 @@ func (s *BochaService) Search(ctx context.Context, query string, freshness strin
 	var searchResp Response
 	if err := json.Unmarshal(body, &searchResp); err != nil {
 		return nil, fmt.Errorf("failed to parse Bocha API response: %w", err)
+	}
+
+	// Validate response
+	if searchResp.Results == nil {
+		return nil, fmt.Errorf("Bocha API returned empty or invalid response")
 	}
 
 	return &searchResp, nil

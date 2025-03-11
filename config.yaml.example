@@ -1,0 +1,10 @@
+# Bocha AI Search Server Configuration
+
+# API configuration
+bocha_api_key: "your-api-key-here"
+bocha_api_base_url: "https://api.bochaai.com/v1/ai-search"
+http_timeout: "10s"
+
+# Server configuration
+server_name: "Bocha AI Search Server"
+server_version: "1.0.0" 

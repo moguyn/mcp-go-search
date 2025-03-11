@@ -6,18 +6,23 @@ import (
 	"os"
 	"strconv"
 	"time"
+
+	"gopkg.in/yaml.v3"
 )
 
 // Config holds the application configuration
 type Config struct {
 	// API configuration
-	BochaAPIKey     string
-	BochaAPIBaseURL string
-	HTTPTimeout     time.Duration
+	BochaAPIKey     string        `yaml:"bocha_api_key" json:"bocha_api_key"`
+	BochaAPIBaseURL string        `yaml:"bocha_api_base_url" json:"bocha_api_base_url"`
+	HTTPTimeout     time.Duration `yaml:"-" json:"-"` // Custom handling for YAML/JSON
 
 	// Server configuration
-	ServerName    string
-	ServerVersion string
+	ServerName    string `yaml:"server_name" json:"server_name"`
+	ServerVersion string `yaml:"server_version" json:"server_version"`
+
+	// Internal fields not for YAML/JSON
+	HTTPTimeoutStr string `yaml:"http_timeout" json:"http_timeout"`
 }
 
 // New creates a new configuration with values from environment variables
@@ -29,6 +34,31 @@ func New() *Config {
 		HTTPTimeout:     getEnvDurationWithDefault("HTTP_TIMEOUT", 10*time.Second),
 		ServerName:      getEnvWithDefault("SERVER_NAME", "Bocha AI Search Server"),
 		ServerVersion:   getEnvWithDefault("SERVER_VERSION", "1.0.0"),
+	}
+
+	// Check if a config file path is provided
+	configPath := os.Getenv("CONFIG_FILE")
+	if configPath != "" {
+		if err := config.LoadFromFile(configPath); err != nil {
+			log.Printf("Warning: Failed to load config from file %s: %v", configPath, err)
+		}
+	}
+
+	// Environment variables take precedence over config file
+	if envAPIKey := os.Getenv("BOCHA_API_KEY"); envAPIKey != "" {
+		config.BochaAPIKey = envAPIKey
+	}
+	if envAPIBaseURL := os.Getenv("BOCHA_API_BASE_URL"); envAPIBaseURL != "" {
+		config.BochaAPIBaseURL = envAPIBaseURL
+	}
+	if envHTTPTimeout := os.Getenv("HTTP_TIMEOUT"); envHTTPTimeout != "" {
+		config.HTTPTimeout = getEnvDurationWithDefault("HTTP_TIMEOUT", config.HTTPTimeout)
+	}
+	if envServerName := os.Getenv("SERVER_NAME"); envServerName != "" {
+		config.ServerName = envServerName
+	}
+	if envServerVersion := os.Getenv("SERVER_VERSION"); envServerVersion != "" {
+		config.ServerVersion = envServerVersion
 	}
 
 	// Validate required configuration
@@ -45,6 +75,44 @@ func New() *Config {
 	}
 
 	return config
+}
+
+// LoadFromFile loads configuration from a YAML file
+func (c *Config) LoadFromFile(path string) error {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("failed to read config file: %w", err)
+	}
+
+	// Create a temporary config to unmarshal into
+	var fileConfig Config
+	if err := yaml.Unmarshal(data, &fileConfig); err != nil {
+		return fmt.Errorf("failed to parse config file: %w", err)
+	}
+
+	// Apply non-empty values from the file config
+	if fileConfig.BochaAPIKey != "" {
+		c.BochaAPIKey = fileConfig.BochaAPIKey
+	}
+	if fileConfig.BochaAPIBaseURL != "" {
+		c.BochaAPIBaseURL = fileConfig.BochaAPIBaseURL
+	}
+	if fileConfig.HTTPTimeoutStr != "" {
+		duration, err := time.ParseDuration(fileConfig.HTTPTimeoutStr)
+		if err == nil {
+			c.HTTPTimeout = duration
+		} else {
+			log.Printf("Warning: Invalid HTTP timeout in config file: %s", fileConfig.HTTPTimeoutStr)
+		}
+	}
+	if fileConfig.ServerName != "" {
+		c.ServerName = fileConfig.ServerName
+	}
+	if fileConfig.ServerVersion != "" {
+		c.ServerVersion = fileConfig.ServerVersion
+	}
+
+	return nil
 }
 
 // Validate performs additional validation on the configuration

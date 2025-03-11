@@ -1,4 +1,4 @@
-.PHONY: build run test lint clean help release release-snapshot
+.PHONY: build run test lint clean help release release-snapshot run-config
 
 # Binary name
 BINARY_NAME=mcp-search-server
@@ -42,10 +42,27 @@ run-custom: build
 	 SERVER_VERSION=$(if $(SERVER_VERSION),$(SERVER_VERSION),1.0.0) \
 	 ./$(BINARY_NAME)
 
+# Run with config file
+run-config: build
+	@if [ -z "$(CONFIG_FILE)" ]; then \
+		echo "Usage: make run-config CONFIG_FILE=path/to/config.yaml"; \
+		echo "Example: make run-config CONFIG_FILE=./config.yaml"; \
+		exit 1; \
+	fi
+	@echo "Running with config file: $(CONFIG_FILE)..."
+	@CONFIG_FILE=$(CONFIG_FILE) ./$(BINARY_NAME)
+
 # Run tests
 test:
 	@echo "Running tests..."
 	@$(GOTEST) -v ./...
+
+# Run tests with coverage
+test-coverage:
+	@echo "Running tests with coverage..."
+	@$(GOTEST) -v -coverprofile=coverage.out ./...
+	@$(GOCMD) tool cover -html=coverage.out -o coverage.html
+	@echo "Coverage report generated at coverage.html"
 
 # Run linter
 lint:
@@ -56,6 +73,7 @@ lint:
 clean:
 	@echo "Cleaning..."
 	@rm -f $(BINARY_NAME)
+	@rm -f coverage.out coverage.html
 
 # Update dependencies
 deps:
@@ -78,7 +96,9 @@ help:
 	@echo "  build           - Build the application"
 	@echo "  run             - Build and run the application (requires API_KEY)"
 	@echo "  run-custom      - Run with custom configuration options"
+	@echo "  run-config      - Run with a JSON configuration file"
 	@echo "  test            - Run tests"
+	@echo "  test-coverage   - Run tests with coverage report"
 	@echo "  lint            - Run linter"
 	@echo "  clean           - Remove build artifacts"
 	@echo "  deps            - Update dependencies"
@@ -89,4 +109,5 @@ help:
 	@echo "Examples:"
 	@echo "  make run API_KEY=your-api-key-here"
 	@echo "  make run-custom API_KEY=your-api-key-here API_BASE_URL=https://custom-url.com HTTP_TIMEOUT=5s"
+	@echo "  make run-config CONFIG_FILE=./config.yaml"
 	@echo "  make release-snapshot" 
