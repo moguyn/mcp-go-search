@@ -34,7 +34,7 @@ func TestBochaService_Search(t *testing.T) {
 		// Return a mock response
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{
+		_, err := w.Write([]byte(`{
 			"results": [
 				{
 					"title": "Test Result",
@@ -44,6 +44,9 @@ func TestBochaService_Search(t *testing.T) {
 			],
 			"answer": "This is a test answer"
 		}`))
+		if err != nil {
+			t.Fatalf("Failed to write response: %v", err)
+		}
 	}))
 	defer server.Close()
 
@@ -71,9 +74,10 @@ func TestBochaService_Search(t *testing.T) {
 		t.Fatal("Search returned nil response")
 	}
 
-	// Check the answer
-	if response.Answer != "This is a test answer" {
-		t.Errorf("Expected answer 'This is a test answer', got %s", response.Answer)
+	// Now that we've verified response is not nil, we can safely check its fields
+	expectedAnswer := "This is a test answer"
+	if response.Answer != expectedAnswer {
+		t.Errorf("Expected answer '%s', got '%s'", expectedAnswer, response.Answer)
 	}
 
 	// Check the results
@@ -83,12 +87,12 @@ func TestBochaService_Search(t *testing.T) {
 
 	result := response.Results[0]
 	if result.Title != "Test Result" {
-		t.Errorf("Expected title 'Test Result', got %s", result.Title)
+		t.Errorf("Expected title 'Test Result', got '%s'", result.Title)
 	}
 	if result.URL != "https://example.com" {
-		t.Errorf("Expected URL 'https://example.com', got %s", result.URL)
+		t.Errorf("Expected URL 'https://example.com', got '%s'", result.URL)
 	}
 	if result.Description != "This is a test result" {
-		t.Errorf("Expected description 'This is a test result', got %s", result.Description)
+		t.Errorf("Expected description 'This is a test result', got '%s'", result.Description)
 	}
 }

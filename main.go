@@ -5,10 +5,11 @@ import (
 	"log"
 	"os"
 
+	"github.com/mark3labs/mcp-go/server"
+
 	"com.moguyn/mcp-go-search/config"
 	"com.moguyn/mcp-go-search/mcp"
 	"com.moguyn/mcp-go-search/search"
-	"github.com/mark3labs/mcp-go/server"
 )
 
 func main() {

@@ -6,8 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"com.moguyn/mcp-go-search/search"
 	"github.com/mark3labs/mcp-go/mcp"
+
+	"com.moguyn/mcp-go-search/search"
 )
 
 // SearchTool provides the search functionality as an MCP tool
