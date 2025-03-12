@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.2](https://github.com/moguyn/mcp-go-search/compare/v0.0.1...v0.0.2) (2025-03-12)
+
+
+### Bug Fixes
+
+* response server ([#7](https://github.com/moguyn/mcp-go-search/issues/7)) ([2f52649](https://github.com/moguyn/mcp-go-search/commit/2f52649e0ac3acae9f8a4577c386a685108bb51c))
+
 ## [0.0.1](https://github.com/moguyn/mcp-go-search/compare/v0.0.1...v0.0.1) (2025-03-12)
 
 
