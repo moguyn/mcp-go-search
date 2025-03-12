@@ -1,0 +1,83 @@
+{
+    "code": 200,
+    "log_id": "ba589cc3b357b90d",
+    "msg": null,
+    "data": {
+        "_type": "SearchResponse",
+        "queryContext": {
+            "originalQuery": "阿里巴巴2025年的ESG报告"
+        },
+        "webPages": {
+            "webSearchUrl": "https://bochaai.com/search?q=阿里巴巴2025年的ESG报告",
+            "totalEstimatedMatches": 49,
+            "value": [
+                {
+                    "id": "https://api.bochaai.com/v1/#WebPages.0",
+                    "name": "阿里巴巴发布2022 ESG报告：5亿消费者参与公益捐赠",
+                    "url": "https://m.163.com/dy/article_cambrian/HFUP46540514R9KQ.html",
+                    "displayUrl": "https://m.163.com/dy/article_cambrian/HFUP46540514R9KQ.html",
+                    "snippet": "据了解，阿里巴巴此次发布的ESG报告，既与联合国《2030年可持续发展议程》提出的17项可持续发展目标相契合，又包含助力共同富裕、乡村振兴等有中国内涵的议题。阿里巴巴发布的ESG报告，共涵盖“修复绿色星球”“支持员工发展”“服务...",
+                    "siteName": "网易",
+                    "siteIcon": "https://th.bochaai.com/favicon?domain_url=https://m.163.com/dy/article_cambrian/HFUP46540514R9KQ.html",
+                    "dateLastCrawled": "2022-08-29T14:31:00Z",
+                    "cachedPageUrl": null,
+                    "language": null,
+                    "isFamilyFriendly": null,
+                    "isNavigational": null
+                },
+                {
+                    "id": "https://api.bochaai.com/v1/#WebPages.1",
+                    "name": "阿里巴巴集团首席执行官 吴泳铭",
+                    "url": "https://www.alibabagroup.com/zh-HK/esg",
+                    "displayUrl": "https://www.alibabagroup.com/zh-HK/esg",
+                    "snippet": "最新ESG报告2024 阿里巴巴环境、社会和治理（ESG）报告PDF首席执行官的一封信ESG的核心是围绕如何成为一家更好的公司。今年是阿里巴巴成立25年。25年来，阿里巴巴秉持「让天下没有难做的生...",
+                    "siteName": "www.alibabagroup.com",
+                    "siteIcon": "https://th.bochaai.com/favicon?domain_url=https://www.alibabagroup.com/zh-HK/esg",
+                    "dateLastCrawled": "2024-11-05T00:00:00Z",
+                    "cachedPageUrl": null,
+                    "language": null,
+                    "isFamilyFriendly": null,
+                    "isNavigational": null
+                }
+            ],
+            "someResultsRemoved": true
+        },
+        "images": {
+            "id": null,
+            "readLink": null,
+            "webSearchUrl": null,
+            "value": [
+                {
+                    "webSearchUrl": null,
+                    "name": null,
+                    "thumbnailUrl": "http://inews.gtimg.com/newsapp_ls/0/15206705695_640330/0",
+                    "datePublished": null,
+                    "contentUrl": "http://inews.gtimg.com/newsapp_ls/0/15206705695_640330/0",
+                    "hostPageUrl": "https://new.qq.com/rain/a/20220829A06PTG00?media_id=&openApp=false&suid=&web_channel=wap",
+                    "contentSize": null,
+                    "encodingFormat": null,
+                    "hostPageDisplayUrl": "https://new.qq.com/rain/a/20220829A06PTG00?media_id=&openApp=false&suid=&web_channel=wap",
+                    "width": 640,
+                    "height": 330,
+                    "thumbnail": null
+                },
+                {
+                    "webSearchUrl": null,
+                    "name": null,
+                    "thumbnailUrl": "http://webquotepic.eastmoney.com/GetPic.aspx?nid=1.000001&imageType=rtop&token=e1fc716525030b5517f9968fe65eb25d&timespan=0.11012930906526042",
+                    "datePublished": null,
+                    "contentUrl": "http://webquotepic.eastmoney.com/GetPic.aspx?nid=1.000001&imageType=rtop&token=e1fc716525030b5517f9968fe65eb25d&timespan=0.11012930906526042",
+                    "hostPageUrl": "https://wap.eastmoney.com/a/202208292493861728.html",
+                    "contentSize": null,
+                    "encodingFormat": null,
+                    "hostPageDisplayUrl": "https://wap.eastmoney.com/a/202208292493861728.html",
+                    "width": 250,
+                    "height": 128,
+                    "thumbnail": null
+                }
+            ],
+            "isFamilyFriendly": null
+        },
+        "videos": null
+    }
+}

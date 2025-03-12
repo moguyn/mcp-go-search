@@ -15,35 +15,37 @@ import (
 	"com.moguyn/mcp-go-search/config"
 )
 
-// Request represents the request structure for the Bocha AI Search API
-type Request struct {
+// WebSearchRequest represents the request structure for the Bocha Web Search API
+type WebSearchRequest struct {
 	Query     string `json:"query"`
 	Freshness string `json:"freshness"`
 	Count     int    `json:"count"`
-	Answer    bool   `json:"answer"`
-	Stream    bool   `json:"stream"`
+	Summary   bool   `json:"summary"`
 }
 
-// Result represents a single search result from the Bocha AI Search API
-type Result struct {
-	Title         string `json:"title"`
-	URL           string `json:"url"`
-	Description   string `json:"description"`
-	DatePublished string `json:"datePublished,omitempty"`
+// WebSearchResult represents a single search result from the Bocha Web Search API
+type WebSearchResult struct {
+	Title         string   `json:"title"`
+	URL           string   `json:"url"`
+	Description   string   `json:"description"`
+	DatePublished string   `json:"datePublished,omitempty"`
+	FaviconURL    string   `json:"faviconUrl,omitempty"`
+	ThumbnailURL  string   `json:"thumbnailUrl,omitempty"`
+	Snippets      []string `json:"snippets,omitempty"`
 }
 
-// Response represents the response structure from the Bocha AI Search API
-type Response struct {
-	Results []Result `json:"results"`
-	Answer  string   `json:"answer,omitempty"`
+// WebSearchResponse represents the response structure from the Bocha Web Search API
+type WebSearchResponse struct {
+	Results []WebSearchResult `json:"results"`
+	Summary string            `json:"summary,omitempty"`
 }
 
 // Service defines the interface for search operations
 type Service interface {
-	Search(ctx context.Context, query string, freshness string, count int, answer bool) (*Response, error)
+	Search(ctx context.Context, query string, freshness string, count int, summary bool) (*WebSearchResponse, error)
 }
 
-// BochaService implements the Service interface for Bocha AI Search API
+// BochaService implements the Service interface for Bocha Web Search API
 type BochaService struct {
 	apiKey      string
 	apiBaseURL  string
@@ -82,8 +84,8 @@ func NewBochaServiceWithConfig(cfg *config.Config) *BochaService {
 	}
 }
 
-// Search performs a search using the Bocha AI Search API
-func (s *BochaService) Search(ctx context.Context, query string, freshness string, count int, answer bool) (*Response, error) {
+// Search performs a search using the Bocha Web Search API
+func (s *BochaService) Search(ctx context.Context, query string, freshness string, count int, summary bool) (*WebSearchResponse, error) {
 	// Apply rate limiting
 	if err := s.rateLimiter.Wait(ctx); err != nil {
 		return nil, fmt.Errorf("rate limit exceeded: %w", err)
@@ -98,8 +100,8 @@ func (s *BochaService) Search(ctx context.Context, query string, freshness strin
 	query = sanitizeQuery(query)
 
 	// Validate freshness parameter if provided
-	if freshness != "" && freshness != "noLimit" && freshness != "day" && freshness != "week" && freshness != "month" {
-		return nil, fmt.Errorf("invalid freshness value: %q, must be one of: noLimit, day, week, month", freshness)
+	if freshness != "" && freshness != "noLimit" && freshness != "day" && freshness != "week" && freshness != "month" && freshness != "oneYear" {
+		return nil, fmt.Errorf("invalid freshness value: %q, must be one of: noLimit, day, week, month, oneYear", freshness)
 	}
 
 	if count < 1 {
@@ -109,12 +111,11 @@ func (s *BochaService) Search(ctx context.Context, query string, freshness strin
 	}
 
 	// Create the request payload
-	reqBody := Request{
+	reqBody := WebSearchRequest{
 		Query:     query,
 		Freshness: freshness,
 		Count:     count,
-		Answer:    answer,
-		Stream:    false, // We don't support streaming in this implementation
+		Summary:   summary,
 	}
 
 	// Convert the request to JSON
@@ -132,7 +133,7 @@ func (s *BochaService) Search(ctx context.Context, query string, freshness strin
 	// Set headers
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", s.apiKey))
-	req.Header.Set("User-Agent", "BochaAISearchMCPServer/1.0")
+	req.Header.Set("User-Agent", "BochaWebSearchMCPServer/1.0")
 
 	// Send the request
 	resp, err := s.httpClient.Do(req)
@@ -154,22 +155,22 @@ func (s *BochaService) Search(ctx context.Context, query string, freshness strin
 			Error string `json:"error"`
 		}
 		if err := json.Unmarshal(body, &errorResp); err == nil && errorResp.Error != "" {
-			return nil, fmt.Errorf("Bocha API error (status %d): %s", resp.StatusCode, errorResp.Error)
+			return nil, fmt.Errorf("bocha api error (status %d): %s", resp.StatusCode, errorResp.Error)
 		}
 
 		// Don't return the full response body in case of error to avoid leaking sensitive information
-		return nil, fmt.Errorf("Bocha API returned status code %d", resp.StatusCode)
+		return nil, fmt.Errorf("bocha api returned status code %d", resp.StatusCode)
 	}
 
 	// Parse the response
-	var searchResp Response
+	var searchResp WebSearchResponse
 	if err := json.Unmarshal(body, &searchResp); err != nil {
-		return nil, fmt.Errorf("failed to parse Bocha API response: %w", err)
+		return nil, fmt.Errorf("failed to parse bocha api response: %w", err)
 	}
 
 	// Validate response
 	if searchResp.Results == nil {
-		return nil, fmt.Errorf("Bocha API returned empty or invalid response")
+		return nil, fmt.Errorf("bocha api returned empty or invalid response")
 	}
 
 	return &searchResp, nil

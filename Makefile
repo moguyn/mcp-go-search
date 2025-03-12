@@ -39,7 +39,7 @@ run-custom: build
 	 BOCHA_API_BASE_URL=$(if $(API_BASE_URL),$(API_BASE_URL),https://api.bochaai.com/v1/ai-search) \
 	 HTTP_TIMEOUT=$(if $(HTTP_TIMEOUT),$(HTTP_TIMEOUT),10s) \
 	 SERVER_NAME=$(if $(SERVER_NAME),$(SERVER_NAME),"Bocha AI Search Server") \
-	 SERVER_VERSION=$(if $(SERVER_VERSION),$(SERVER_VERSION),1.0.0) \
+	 SERVER_VERSION=$(if $(SERVER_VERSION),$(SERVER_VERSION),0.0.1) \
 	 ./$(BINARY_NAME)
 
 # Run with config file

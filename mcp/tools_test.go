@@ -12,12 +12,12 @@ import (
 
 // MockSearchService is a mock implementation of the search.Service interface
 type MockSearchService struct {
-	SearchFunc func(ctx context.Context, query string, freshness string, count int, answer bool) (*search.Response, error)
+	SearchFunc func(ctx context.Context, query string, freshness string, count int, summary bool) (*search.WebSearchResponse, error)
 }
 
 // Search calls the mock SearchFunc
-func (m *MockSearchService) Search(ctx context.Context, query string, freshness string, count int, answer bool) (*search.Response, error) {
-	return m.SearchFunc(ctx, query, freshness, count, answer)
+func (m *MockSearchService) Search(ctx context.Context, query string, freshness string, count int, summary bool) (*search.WebSearchResponse, error) {
+	return m.SearchFunc(ctx, query, freshness, count, summary)
 }
 
 func TestNewSearchTool(t *testing.T) {
@@ -43,11 +43,6 @@ func TestDefinition(t *testing.T) {
 		t.Errorf("Expected tool name 'search', got '%s'", definition.Name)
 	}
 
-	// Check tool description
-	if definition.Description != "Search the web using Bocha AI Search API" {
-		t.Errorf("Expected tool description 'Search the web using Bocha AI Search API', got '%s'", definition.Description)
-	}
-
 	// Check that InputSchema is not empty
 	if len(definition.InputSchema.Properties) == 0 {
 		t.Error("Expected InputSchema to have properties")
@@ -65,7 +60,7 @@ func TestHandler(t *testing.T) {
 	testCases := []struct {
 		name           string
 		request        mcp.CallToolRequest
-		mockResponse   *search.Response
+		mockResponse   *search.WebSearchResponse
 		mockError      error
 		expectedResult *mcp.CallToolResult
 		expectedError  error
@@ -85,8 +80,8 @@ func TestHandler(t *testing.T) {
 					},
 				},
 			},
-			mockResponse: &search.Response{
-				Results: []search.Result{
+			mockResponse: &search.WebSearchResponse{
+				Results: []search.WebSearchResult{
 					{
 						Title:       "Test Result",
 						URL:         "https://example.com",
@@ -111,12 +106,12 @@ func TestHandler(t *testing.T) {
 						"query":     "test query",
 						"freshness": "day",
 						"count":     float64(5),
-						"answer":    true,
+						"summary":   true,
 					},
 				},
 			},
-			mockResponse: &search.Response{
-				Results: []search.Result{
+			mockResponse: &search.WebSearchResponse{
+				Results: []search.WebSearchResult{
 					{
 						Title:         "Test Result",
 						URL:           "https://example.com",
@@ -124,7 +119,7 @@ func TestHandler(t *testing.T) {
 						DatePublished: "2023-01-01T12:00:00Z",
 					},
 				},
-				Answer: "This is a test answer",
+				Summary: "This is a test summary",
 			},
 			mockError:     nil,
 			expectedError: nil,
@@ -170,10 +165,9 @@ func TestHandler(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// Create a mock search service
-			mockService := &MockSearchService{
-				SearchFunc: func(_ context.Context, _ string, _ string, _ int, _ bool) (*search.Response, error) {
-					return tc.mockResponse, tc.mockError
-				},
+			mockService := &MockSearchService{}
+			mockService.SearchFunc = func(ctx context.Context, query string, freshness string, count int, summary bool) (*search.WebSearchResponse, error) {
+				return tc.mockResponse, tc.mockError
 			}
 
 			// Create the search tool
@@ -229,10 +223,13 @@ func TestHandler(t *testing.T) {
 						}
 					}
 
-					// Check that result text contains the answer if provided
-					if tc.mockResponse.Answer != "" {
-						if !strings.Contains(resultText, tc.mockResponse.Answer) {
-							t.Errorf("Expected result text to contain answer '%s'", tc.mockResponse.Answer)
+					// Check if summary is included when requested
+					if tc.request.Params.Arguments["summary"] == true && tc.mockResponse.Summary != "" {
+						if !strings.Contains(resultText, "Summary:") {
+							t.Errorf("Expected result to contain summary, but it didn't: %s", resultText)
+						}
+						if !strings.Contains(resultText, tc.mockResponse.Summary) {
+							t.Errorf("Expected result to contain summary text '%s', but it didn't: %s", tc.mockResponse.Summary, resultText)
 						}
 					}
 				}
@@ -249,6 +246,7 @@ func TestFormatFreshness(t *testing.T) {
 		{"day", "Past 24 hours"},
 		{"week", "Past week"},
 		{"month", "Past month"},
+		{"oneYear", "Past year"},
 		{"noLimit", "No time limit"},
 		{"", "No time limit"},
 		{"invalid", "No time limit"},

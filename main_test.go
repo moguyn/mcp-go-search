@@ -30,7 +30,7 @@ func TestConfigValidation(t *testing.T) {
 	os.Setenv("BOCHA_API_BASE_URL", "https://test.api.com")
 	os.Setenv("HTTP_TIMEOUT", "5s")
 	os.Setenv("SERVER_NAME", "Test Server")
-	os.Setenv("SERVER_VERSION", "1.0.0")
+	os.Setenv("SERVER_VERSION", "0.0.1")
 
 	// Call runServer - it should return an error
 	err := runServer()
@@ -71,7 +71,7 @@ func TestConfigSuccess(t *testing.T) {
 	os.Setenv("BOCHA_API_BASE_URL", "https://test.api.com")
 	os.Setenv("HTTP_TIMEOUT", "5s")
 	os.Setenv("SERVER_NAME", "Test Server")
-	os.Setenv("SERVER_VERSION", "1.0.0")
+	os.Setenv("SERVER_VERSION", "0.0.1")
 
 	// Call runServer - it should not return an error
 	err := runServer()
