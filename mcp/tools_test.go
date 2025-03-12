@@ -84,7 +84,7 @@ func TestHandler(t *testing.T) {
 				Code:  200,
 				LogID: "test-log-id",
 				Msg:   nil,
-				Data: search.SearchData{
+				Data: search.Data{
 					Type: "SearchResponse",
 					QueryContext: search.QueryContext{
 						OriginalQuery: "test query",
@@ -130,7 +130,7 @@ func TestHandler(t *testing.T) {
 				Code:  200,
 				LogID: "test-log-id",
 				Msg:   nil,
-				Data: search.SearchData{
+				Data: search.Data{
 					Type: "SearchResponse",
 					QueryContext: search.QueryContext{
 						OriginalQuery: "test query",
@@ -197,7 +197,7 @@ func TestHandler(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// Create a mock search service
 			mockService := &MockSearchService{}
-			mockService.SearchFunc = func(ctx context.Context, query string, freshness string, count int, summary bool) (*search.WebSearchResponse, error) {
+			mockService.SearchFunc = func(_ context.Context, _ string, _ string, _ int, _ bool) (*search.WebSearchResponse, error) {
 				return tc.mockResponse, tc.mockError
 			}
 

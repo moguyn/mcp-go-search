@@ -102,7 +102,7 @@ func TestBochaService_Search(t *testing.T) {
 			Code:  200,
 			LogID: "test-log-id",
 			Msg:   nil,
-			Data: SearchData{
+			Data: Data{
 				Type: "SearchResponse",
 				QueryContext: QueryContext{
 					OriginalQuery: "test query",
@@ -151,7 +151,9 @@ func TestBochaService_Search(t *testing.T) {
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(resp)
+		if err := json.NewEncoder(w).Encode(resp); err != nil {
+			t.Fatalf("Failed to encode response: %v", err)
+		}
 	}))
 	defer server.Close()
 
@@ -203,7 +205,7 @@ func TestBochaService_Search(t *testing.T) {
 // TestBochaService_Search_Validation tests the validation in the Search method
 func TestBochaService_Search_Validation(t *testing.T) {
 	// Create a mock server that returns a valid response
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`{

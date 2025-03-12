@@ -144,7 +144,7 @@ func (t *SearchTool) Handler() func(ctx context.Context, request mcp.CallToolReq
 		}
 
 		// Add image results if available
-		if response.Data.Images.Value != nil && len(response.Data.Images.Value) > 0 {
+		if len(response.Data.Images.Value) > 0 {
 			resultBuilder.WriteString("Image Results:\n")
 			resultBuilder.WriteString("==============\n\n")
 

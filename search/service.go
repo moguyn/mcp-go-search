@@ -77,8 +77,8 @@ type QueryContext struct {
 	OriginalQuery string `json:"originalQuery"`
 }
 
-// SearchData represents the data section of the search response
-type SearchData struct {
+// Data represents the data section of the search response
+type Data struct {
 	Type         string       `json:"_type"`
 	QueryContext QueryContext `json:"queryContext"`
 	WebPages     WebPages     `json:"webPages"`
@@ -88,10 +88,10 @@ type SearchData struct {
 
 // WebSearchResponse represents the response structure from the Bocha Web Search API
 type WebSearchResponse struct {
-	Code  int        `json:"code"`
-	LogID string     `json:"log_id"`
-	Msg   any        `json:"msg"`
-	Data  SearchData `json:"data"`
+	Code  int    `json:"code"`
+	LogID string `json:"log_id"`
+	Msg   any    `json:"msg"`
+	Data  Data   `json:"data"`
 }
 
 // Service defines the interface for search operations
