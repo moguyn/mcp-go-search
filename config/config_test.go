@@ -36,16 +36,16 @@ func TestNew(t *testing.T) {
 	if cfg.BochaAPIKey != "" {
 		t.Errorf("Expected empty API key, got %s", cfg.BochaAPIKey)
 	}
-	if cfg.BochaAPIBaseURL != "https://api.bochaai.com/v1/ai-search" {
+	if cfg.BochaAPIBaseURL != "https://api.bochaai.com/v1/web-search" {
 		t.Errorf("Expected default API base URL, got %s", cfg.BochaAPIBaseURL)
 	}
-	if cfg.HTTPTimeout != 10*time.Second {
+	if cfg.HTTPTimeout != 15*time.Second {
 		t.Errorf("Expected default HTTP timeout, got %s", cfg.HTTPTimeout)
 	}
 	if cfg.ServerName != "Bocha AI Search Server" {
 		t.Errorf("Expected default server name, got %s", cfg.ServerName)
 	}
-	if cfg.ServerVersion != "1.0.0" {
+	if cfg.ServerVersion != "0.0.1" {
 		t.Errorf("Expected default server version, got %s", cfg.ServerVersion)
 	}
 
@@ -82,7 +82,7 @@ func TestValidate(t *testing.T) {
 		BochaAPIBaseURL: "https://test.api.com",
 		HTTPTimeout:     10 * time.Second,
 		ServerName:      "Test Server",
-		ServerVersion:   "1.0.0",
+		ServerVersion:   "0.0.1",
 	}
 
 	if err := cfg.Validate(); err != nil {
@@ -183,7 +183,7 @@ server_version: "2.0.0"
 		BochaAPIBaseURL: "https://default.api.com",
 		HTTPTimeout:     10 * time.Second,
 		ServerName:      "Default Server",
-		ServerVersion:   "1.0.0",
+		ServerVersion:   "0.0.1",
 	}
 
 	// Load the config from the file

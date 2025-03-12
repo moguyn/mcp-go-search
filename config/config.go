@@ -32,10 +32,10 @@ func New() *Config {
 	config := &Config{
 		// Default values
 		BochaAPIKey:     os.Getenv("BOCHA_API_KEY"),
-		BochaAPIBaseURL: getEnvWithDefault("BOCHA_API_BASE_URL", "https://api.bochaai.com/v1/ai-search"),
-		HTTPTimeout:     getEnvDurationWithDefault("HTTP_TIMEOUT", 10*time.Second),
+		BochaAPIBaseURL: getEnvWithDefault("BOCHA_API_BASE_URL", "https://api.bochaai.com/v1/web-search"),
+		HTTPTimeout:     getEnvDurationWithDefault("HTTP_TIMEOUT", 15*time.Second),
 		ServerName:      getEnvWithDefault("SERVER_NAME", "Bocha AI Search Server"),
-		ServerVersion:   getEnvWithDefault("SERVER_VERSION", "1.0.0"),
+		ServerVersion:   getEnvWithDefault("SERVER_VERSION", "0.0.1"),
 	}
 
 	// Check if a config file path is provided

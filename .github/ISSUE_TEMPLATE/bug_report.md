@@ -24,7 +24,7 @@ If applicable, add screenshots to help explain your problem.
 ## Environment
  - OS: [e.g. Ubuntu 20.04, macOS 12.0]
  - Go version: [e.g. 1.20.1]
- - Project version: [e.g. v1.0.0]
+ - Project version: [e.g. v0.0.1]
 
 ## Additional context
 Add any other context about the problem here. 

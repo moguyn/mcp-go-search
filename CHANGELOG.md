@@ -1,13 +1,13 @@
 # Changelog
 
-## [0.0.1](https://github.com/moguyn/mcp-go-search/compare/v1.0.0...v0.0.1) (2025-03-12)
+## [0.0.1](https://github.com/moguyn/mcp-go-search/compare/v0.0.1...v0.0.1) (2025-03-12)
 
 
 ### Bug Fixes
 
 * ignore md files in workflows ([#5](https://github.com/moguyn/mcp-go-search/issues/5)) ([3ca084e](https://github.com/moguyn/mcp-go-search/commit/3ca084ebe3b7212b1c07e73323d6b04acba5f792))
 
-## 1.0.0 (2025-03-12)
+## 0.0.1 (2025-03-12)
 
 
 ### Bug Fixes

@@ -82,7 +82,7 @@ You can also use a YAML configuration file:
    
    # Server configuration
    server_name: "Bocha AI Search Server"
-   server_version: "1.0.0"
+   server_version: "0.0.1"
    ```
 
 2. Run the server with the config file:

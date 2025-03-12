@@ -26,20 +26,20 @@ func NewSearchTool(searchService search.Service) *SearchTool {
 // Definition returns the MCP tool definition
 func (t *SearchTool) Definition() mcp.Tool {
 	return mcp.NewTool("search",
-		mcp.WithDescription("Search the web using Bocha AI Search API"),
+		mcp.WithDescription("Get the state of the world by searching the web"),
 		mcp.WithString("query",
 			mcp.Required(),
 			mcp.Description("The search query"),
 		),
 		mcp.WithString("freshness",
-			mcp.Description("Filter results by freshness (noLimit, day, week, month)"),
-			mcp.Enum("noLimit", "day", "week", "month"),
+			mcp.Description("Filter results by freshness (noLimit, day, week, month, oneYear)"),
+			mcp.Enum("noLimit", "day", "week", "month", "oneYear"),
 		),
 		mcp.WithNumber("count",
 			mcp.Description("Number of results to return (1-50)"),
 		),
-		mcp.WithBoolean("answer",
-			mcp.Description("Whether to generate an answer based on search results"),
+		mcp.WithBoolean("summary",
+			mcp.Description("Whether to generate a summary based on search results"),
 		),
 	)
 }
@@ -66,8 +66,8 @@ func (t *SearchTool) Handler() func(ctx context.Context, request mcp.CallToolReq
 		freshness := "noLimit"
 		if f, ok := request.Params.Arguments["freshness"].(string); ok && f != "" {
 			// Validate freshness parameter
-			if f != "noLimit" && f != "day" && f != "week" && f != "month" {
-				return mcp.NewToolResultError(fmt.Sprintf("invalid freshness value: %q, must be one of: noLimit, day, week, month", f)), nil
+			if f != "noLimit" && f != "day" && f != "week" && f != "month" && f != "oneYear" {
+				return mcp.NewToolResultError(fmt.Sprintf("invalid freshness value: %q, must be one of: noLimit, day, week, month, oneYear", f)), nil
 			}
 			freshness = f
 		}
@@ -83,13 +83,13 @@ func (t *SearchTool) Handler() func(ctx context.Context, request mcp.CallToolReq
 			}
 		}
 
-		answer := false
-		if a, ok := request.Params.Arguments["answer"].(bool); ok {
-			answer = a
+		summary := false
+		if s, ok := request.Params.Arguments["summary"].(bool); ok {
+			summary = s
 		}
 
 		// Perform the search
-		response, err := t.searchService.Search(ctx, query, freshness, count, answer)
+		response, err := t.searchService.Search(ctx, query, freshness, count, summary)
 		if err != nil {
 			// Handle context cancellation
 			if ctx.Err() == context.DeadlineExceeded {
@@ -107,12 +107,12 @@ func (t *SearchTool) Handler() func(ctx context.Context, request mcp.CallToolReq
 		// Add search metadata
 		resultBuilder.WriteString(fmt.Sprintf("Search Query: \"%s\"\n", query))
 		resultBuilder.WriteString(fmt.Sprintf("Freshness: %s\n", formatFreshness(freshness)))
-		resultBuilder.WriteString(fmt.Sprintf("Results: %d\n\n", len(response.Results)))
+		resultBuilder.WriteString(fmt.Sprintf("Results: %d\n\n", len(response.Data.WebPages.Value)))
 
-		// Add answer if available
-		if answer && response.Answer != "" {
-			resultBuilder.WriteString("Answer:\n")
-			resultBuilder.WriteString(response.Answer)
+		// Add summary if available
+		if summary && response.Data.WebPages.WebSearchURL != "" {
+			resultBuilder.WriteString("Search URL:\n")
+			resultBuilder.WriteString(response.Data.WebPages.WebSearchURL)
 			resultBuilder.WriteString("\n\n")
 		}
 
@@ -120,16 +120,42 @@ func (t *SearchTool) Handler() func(ctx context.Context, request mcp.CallToolReq
 		resultBuilder.WriteString("Search Results:\n")
 		resultBuilder.WriteString("==============\n\n")
 
-		for i, result := range response.Results {
-			resultBuilder.WriteString(fmt.Sprintf("%d. %s\n", i+1, result.Title))
+		for i, result := range response.Data.WebPages.Value {
+			resultBuilder.WriteString(fmt.Sprintf("%d. %s\n", i+1, result.Name))
 			resultBuilder.WriteString(fmt.Sprintf("   URL: %s\n", result.URL))
 
-			// Add date published if available
-			if result.DatePublished != "" {
-				resultBuilder.WriteString(fmt.Sprintf("   Published: %s\n", formatDate(result.DatePublished)))
+			if result.SiteIcon != "" {
+				resultBuilder.WriteString(fmt.Sprintf("   Favicon: %s\n", result.SiteIcon))
 			}
 
-			resultBuilder.WriteString(fmt.Sprintf("   %s\n\n", result.Description))
+			if result.SiteName != "" {
+				resultBuilder.WriteString(fmt.Sprintf("   Site: %s\n", result.SiteName))
+			}
+
+			if result.Snippet != "" {
+				resultBuilder.WriteString(fmt.Sprintf("   Description: %s\n", result.Snippet))
+			}
+
+			if result.DateLastCrawled != "" {
+				resultBuilder.WriteString(fmt.Sprintf("   Date: %s\n", formatDate(result.DateLastCrawled)))
+			}
+
+			resultBuilder.WriteString("\n")
+		}
+
+		// Add image results if available
+		if len(response.Data.Images.Value) > 0 {
+			resultBuilder.WriteString("Image Results:\n")
+			resultBuilder.WriteString("==============\n\n")
+
+			for i, image := range response.Data.Images.Value {
+				resultBuilder.WriteString(fmt.Sprintf("%d. Image\n", i+1))
+				resultBuilder.WriteString(fmt.Sprintf("   URL: %s\n", image.ContentURL))
+				resultBuilder.WriteString(fmt.Sprintf("   Thumbnail: %s\n", image.ThumbnailURL))
+				resultBuilder.WriteString(fmt.Sprintf("   Host Page: %s\n", image.HostPageURL))
+				resultBuilder.WriteString(fmt.Sprintf("   Dimensions: %dx%d\n", image.Width, image.Height))
+				resultBuilder.WriteString("\n")
+			}
 		}
 
 		return mcp.NewToolResultText(resultBuilder.String()), nil
@@ -145,6 +171,8 @@ func formatFreshness(freshness string) string {
 		return "Past week"
 	case "month":
 		return "Past month"
+	case "oneYear":
+		return "Past year"
 	default:
 		return "No time limit"
 	}
