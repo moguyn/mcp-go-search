@@ -3,10 +3,14 @@ name: Security Scan
 on:
   push:
     branches: [ main ]
+    paths-ignore:
+      - '**/*.md'
   pull_request:
     branches: [ main ]
+    paths-ignore:
+      - '**/*.md'
   schedule:
-    - cron: '0 0 * * 0'  # Run weekly on Sundays at midnight
+    - cron: '0 0 * * 0'
 
 jobs:
   security-scan:
