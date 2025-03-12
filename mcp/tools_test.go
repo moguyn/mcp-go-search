@@ -81,11 +81,27 @@ func TestHandler(t *testing.T) {
 				},
 			},
 			mockResponse: &search.WebSearchResponse{
-				Results: []search.WebSearchResult{
-					{
-						Title:       "Test Result",
-						URL:         "https://example.com",
-						Description: "This is a test result",
+				Code:  200,
+				LogID: "test-log-id",
+				Msg:   nil,
+				Data: search.SearchData{
+					Type: "SearchResponse",
+					QueryContext: search.QueryContext{
+						OriginalQuery: "test query",
+					},
+					WebPages: search.WebPages{
+						WebSearchURL:          "https://bochaai.com/search?q=test+query",
+						TotalEstimatedMatches: 1,
+						Value: []search.WebPageResult{
+							{
+								ID:         "https://api.bochaai.com/v1/#WebPages.0",
+								Name:       "Test Result",
+								URL:        "https://example.com",
+								DisplayURL: "https://example.com",
+								Snippet:    "This is a test result",
+							},
+						},
+						SomeResultsRemoved: false,
 					},
 				},
 			},
@@ -111,15 +127,30 @@ func TestHandler(t *testing.T) {
 				},
 			},
 			mockResponse: &search.WebSearchResponse{
-				Results: []search.WebSearchResult{
-					{
-						Title:         "Test Result",
-						URL:           "https://example.com",
-						Description:   "This is a test result",
-						DatePublished: "2023-01-01T12:00:00Z",
+				Code:  200,
+				LogID: "test-log-id",
+				Msg:   nil,
+				Data: search.SearchData{
+					Type: "SearchResponse",
+					QueryContext: search.QueryContext{
+						OriginalQuery: "test query",
+					},
+					WebPages: search.WebPages{
+						WebSearchURL:          "https://bochaai.com/search?q=test+query",
+						TotalEstimatedMatches: 1,
+						Value: []search.WebPageResult{
+							{
+								ID:              "https://api.bochaai.com/v1/#WebPages.0",
+								Name:            "Test Result",
+								URL:             "https://example.com",
+								DisplayURL:      "https://example.com",
+								Snippet:         "This is a test result",
+								DateLastCrawled: "2023-01-01T12:00:00Z",
+							},
+						},
+						SomeResultsRemoved: false,
 					},
 				},
-				Summary: "This is a test summary",
 			},
 			mockError:     nil,
 			expectedError: nil,
@@ -216,20 +247,20 @@ func TestHandler(t *testing.T) {
 						}
 					}
 
-					// Check that result text contains the title of the first result
-					if len(tc.mockResponse.Results) > 0 {
-						if !strings.Contains(resultText, tc.mockResponse.Results[0].Title) {
-							t.Errorf("Expected result text to contain '%s'", tc.mockResponse.Results[0].Title)
+					// Check that result text contains the name of the first result
+					if tc.mockResponse != nil && len(tc.mockResponse.Data.WebPages.Value) > 0 {
+						if !strings.Contains(resultText, tc.mockResponse.Data.WebPages.Value[0].Name) {
+							t.Errorf("Expected result text to contain '%s'", tc.mockResponse.Data.WebPages.Value[0].Name)
 						}
 					}
 
-					// Check if summary is included when requested
-					if tc.request.Params.Arguments["summary"] == true && tc.mockResponse.Summary != "" {
-						if !strings.Contains(resultText, "Summary:") {
-							t.Errorf("Expected result to contain summary, but it didn't: %s", resultText)
+					// Check if search URL is included when summary is requested
+					if tc.request.Params.Arguments["summary"] == true && tc.mockResponse != nil && tc.mockResponse.Data.WebPages.WebSearchURL != "" {
+						if !strings.Contains(resultText, "Search URL:") {
+							t.Errorf("Expected result to contain search URL, but it didn't: %s", resultText)
 						}
-						if !strings.Contains(resultText, tc.mockResponse.Summary) {
-							t.Errorf("Expected result to contain summary text '%s', but it didn't: %s", tc.mockResponse.Summary, resultText)
+						if !strings.Contains(resultText, tc.mockResponse.Data.WebPages.WebSearchURL) {
+							t.Errorf("Expected result to contain search URL '%s', but it didn't: %s", tc.mockResponse.Data.WebPages.WebSearchURL, resultText)
 						}
 					}
 				}

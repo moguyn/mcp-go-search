@@ -23,21 +23,75 @@ type WebSearchRequest struct {
 	Summary   bool   `json:"summary"`
 }
 
-// WebSearchResult represents a single search result from the Bocha Web Search API
-type WebSearchResult struct {
-	Title         string   `json:"title"`
-	URL           string   `json:"url"`
-	Description   string   `json:"description"`
-	DatePublished string   `json:"datePublished,omitempty"`
-	FaviconURL    string   `json:"faviconUrl,omitempty"`
-	ThumbnailURL  string   `json:"thumbnailUrl,omitempty"`
-	Snippets      []string `json:"snippets,omitempty"`
+// WebPageResult represents a single web page result from the Bocha Web Search API
+type WebPageResult struct {
+	ID               string `json:"id"`
+	Name             string `json:"name"`
+	URL              string `json:"url"`
+	DisplayURL       string `json:"displayUrl"`
+	Snippet          string `json:"snippet"`
+	SiteName         string `json:"siteName,omitempty"`
+	SiteIcon         string `json:"siteIcon,omitempty"`
+	DateLastCrawled  string `json:"dateLastCrawled,omitempty"`
+	CachedPageURL    any    `json:"cachedPageUrl"`
+	Language         any    `json:"language"`
+	IsFamilyFriendly any    `json:"isFamilyFriendly"`
+	IsNavigational   any    `json:"isNavigational"`
+}
+
+// WebPages represents the web pages section of the search response
+type WebPages struct {
+	WebSearchURL          string          `json:"webSearchUrl"`
+	TotalEstimatedMatches int             `json:"totalEstimatedMatches"`
+	Value                 []WebPageResult `json:"value"`
+	SomeResultsRemoved    bool            `json:"someResultsRemoved"`
+}
+
+// ImageResult represents a single image result from the Bocha Web Search API
+type ImageResult struct {
+	WebSearchURL       any    `json:"webSearchUrl"`
+	Name               any    `json:"name"`
+	ThumbnailURL       string `json:"thumbnailUrl"`
+	DatePublished      any    `json:"datePublished"`
+	ContentURL         string `json:"contentUrl"`
+	HostPageURL        string `json:"hostPageUrl"`
+	ContentSize        any    `json:"contentSize"`
+	EncodingFormat     any    `json:"encodingFormat"`
+	HostPageDisplayURL string `json:"hostPageDisplayUrl"`
+	Width              int    `json:"width"`
+	Height             int    `json:"height"`
+	Thumbnail          any    `json:"thumbnail"`
+}
+
+// Images represents the images section of the search response
+type Images struct {
+	ID               any           `json:"id"`
+	ReadLink         any           `json:"readLink"`
+	WebSearchURL     any           `json:"webSearchUrl"`
+	Value            []ImageResult `json:"value"`
+	IsFamilyFriendly any           `json:"isFamilyFriendly"`
+}
+
+// QueryContext represents the query context section of the search response
+type QueryContext struct {
+	OriginalQuery string `json:"originalQuery"`
+}
+
+// SearchData represents the data section of the search response
+type SearchData struct {
+	Type         string       `json:"_type"`
+	QueryContext QueryContext `json:"queryContext"`
+	WebPages     WebPages     `json:"webPages"`
+	Images       Images       `json:"images,omitempty"`
+	Videos       any          `json:"videos"`
 }
 
 // WebSearchResponse represents the response structure from the Bocha Web Search API
 type WebSearchResponse struct {
-	Results []WebSearchResult `json:"results"`
-	Summary string            `json:"summary,omitempty"`
+	Code  int        `json:"code"`
+	LogID string     `json:"log_id"`
+	Msg   any        `json:"msg"`
+	Data  SearchData `json:"data"`
 }
 
 // Service defines the interface for search operations
@@ -169,7 +223,7 @@ func (s *BochaService) Search(ctx context.Context, query string, freshness strin
 	}
 
 	// Validate response
-	if searchResp.Results == nil {
+	if searchResp.Data.WebPages.Value == nil {
 		return nil, fmt.Errorf("bocha api returned empty or invalid response")
 	}
 

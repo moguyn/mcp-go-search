@@ -99,21 +99,54 @@ func TestBochaService_Search(t *testing.T) {
 
 		// Return a mock response
 		resp := WebSearchResponse{
-			Results: []WebSearchResult{
-				{
-					Title:         "Test Result 1",
-					URL:           "https://example.com/1",
-					Description:   "This is test result 1",
-					DatePublished: "2023-01-01T12:00:00Z",
+			Code:  200,
+			LogID: "test-log-id",
+			Msg:   nil,
+			Data: SearchData{
+				Type: "SearchResponse",
+				QueryContext: QueryContext{
+					OriginalQuery: "test query",
 				},
-				{
-					Title:         "Test Result 2",
-					URL:           "https://example.com/2",
-					Description:   "This is test result 2",
-					DatePublished: "2023-01-02T12:00:00Z",
+				WebPages: WebPages{
+					WebSearchURL:          "https://bochaai.com/search?q=test+query",
+					TotalEstimatedMatches: 2,
+					Value: []WebPageResult{
+						{
+							ID:              "https://api.bochaai.com/v1/#WebPages.0",
+							Name:            "Test Result 1",
+							URL:             "https://example.com/1",
+							DisplayURL:      "https://example.com/1",
+							Snippet:         "This is test result 1",
+							SiteName:        "Example",
+							SiteIcon:        "https://example.com/favicon.ico",
+							DateLastCrawled: "2023-01-01T12:00:00Z",
+						},
+						{
+							ID:              "https://api.bochaai.com/v1/#WebPages.1",
+							Name:            "Test Result 2",
+							URL:             "https://example.com/2",
+							DisplayURL:      "https://example.com/2",
+							Snippet:         "This is test result 2",
+							SiteName:        "Example",
+							SiteIcon:        "https://example.com/favicon.ico",
+							DateLastCrawled: "2023-01-02T12:00:00Z",
+						},
+					},
+					SomeResultsRemoved: false,
+				},
+				Images: Images{
+					Value: []ImageResult{
+						{
+							ThumbnailURL:       "https://example.com/thumbnail1.jpg",
+							ContentURL:         "https://example.com/image1.jpg",
+							HostPageURL:        "https://example.com/page1",
+							HostPageDisplayURL: "https://example.com/page1",
+							Width:              800,
+							Height:             600,
+						},
+					},
 				},
 			},
-			Summary: "This is a summary of the search results.",
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -146,20 +179,24 @@ func TestBochaService_Search(t *testing.T) {
 		t.Fatal("Search returned nil response")
 	}
 
-	if len(response.Results) != 2 {
-		t.Errorf("Expected 2 results, got %d", len(response.Results))
+	if response.Code != 200 {
+		t.Errorf("Expected code 200, got %d", response.Code)
 	}
 
-	if response.Results[0].Title != "Test Result 1" {
-		t.Errorf("Expected first result title 'Test Result 1', got %s", response.Results[0].Title)
+	if len(response.Data.WebPages.Value) != 2 {
+		t.Errorf("Expected 2 results, got %d", len(response.Data.WebPages.Value))
 	}
 
-	if response.Results[1].URL != "https://example.com/2" {
-		t.Errorf("Expected second result URL 'https://example.com/2', got %s", response.Results[1].URL)
+	if response.Data.WebPages.Value[0].Name != "Test Result 1" {
+		t.Errorf("Expected first result name 'Test Result 1', got %s", response.Data.WebPages.Value[0].Name)
 	}
 
-	if response.Summary != "This is a summary of the search results." {
-		t.Errorf("Expected summary 'This is a summary of the search results.', got %s", response.Summary)
+	if response.Data.WebPages.Value[1].URL != "https://example.com/2" {
+		t.Errorf("Expected second result URL 'https://example.com/2', got %s", response.Data.WebPages.Value[1].URL)
+	}
+
+	if response.Data.QueryContext.OriginalQuery != "test query" {
+		t.Errorf("Expected original query 'test query', got %s", response.Data.QueryContext.OriginalQuery)
 	}
 }
 
@@ -170,14 +207,29 @@ func TestBochaService_Search_Validation(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`{
-			"results": [
-				{
-					"title": "Test Result",
-					"url": "https://example.com",
-					"description": "This is a test result"
+			"code": 200,
+			"log_id": "test-log-id",
+			"msg": null,
+			"data": {
+				"_type": "SearchResponse",
+				"queryContext": {
+					"originalQuery": "test query"
+				},
+				"webPages": {
+					"webSearchUrl": "https://bochaai.com/search?q=test+query",
+					"totalEstimatedMatches": 1,
+					"value": [
+						{
+							"id": "https://api.bochaai.com/v1/#WebPages.0",
+							"name": "Test Result",
+							"url": "https://example.com",
+							"displayUrl": "https://example.com",
+							"snippet": "This is a test result"
+						}
+					],
+					"someResultsRemoved": false
 				}
-			],
-			"summary": "This is a test summary"
+			}
 		}`))
 	}))
 	defer server.Close()
@@ -326,7 +378,22 @@ func TestBochaService_Search_Errors(t *testing.T) {
 	emptyResultsServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"results": []}`))
+		_, _ = w.Write([]byte(`{
+			"code": 200,
+			"log_id": "test-log-id",
+			"msg": null,
+			"data": {
+				"_type": "SearchResponse",
+				"queryContext": {
+					"originalQuery": "test query"
+				},
+				"webPages": {
+					"webSearchUrl": "https://bochaai.com/search?q=test+query",
+					"totalEstimatedMatches": 0,
+					"value": []
+				}
+			}
+		}`))
 	}))
 	defer emptyResultsServer.Close()
 

@@ -107,12 +107,12 @@ func (t *SearchTool) Handler() func(ctx context.Context, request mcp.CallToolReq
 		// Add search metadata
 		resultBuilder.WriteString(fmt.Sprintf("Search Query: \"%s\"\n", query))
 		resultBuilder.WriteString(fmt.Sprintf("Freshness: %s\n", formatFreshness(freshness)))
-		resultBuilder.WriteString(fmt.Sprintf("Results: %d\n\n", len(response.Results)))
+		resultBuilder.WriteString(fmt.Sprintf("Results: %d\n\n", len(response.Data.WebPages.Value)))
 
 		// Add summary if available
-		if summary && response.Summary != "" {
-			resultBuilder.WriteString("Summary:\n")
-			resultBuilder.WriteString(response.Summary)
+		if summary && response.Data.WebPages.WebSearchURL != "" {
+			resultBuilder.WriteString("Search URL:\n")
+			resultBuilder.WriteString(response.Data.WebPages.WebSearchURL)
 			resultBuilder.WriteString("\n\n")
 		}
 
@@ -120,34 +120,42 @@ func (t *SearchTool) Handler() func(ctx context.Context, request mcp.CallToolReq
 		resultBuilder.WriteString("Search Results:\n")
 		resultBuilder.WriteString("==============\n\n")
 
-		for i, result := range response.Results {
-			resultBuilder.WriteString(fmt.Sprintf("%d. %s\n", i+1, result.Title))
+		for i, result := range response.Data.WebPages.Value {
+			resultBuilder.WriteString(fmt.Sprintf("%d. %s\n", i+1, result.Name))
 			resultBuilder.WriteString(fmt.Sprintf("   URL: %s\n", result.URL))
 
-			if result.FaviconURL != "" {
-				resultBuilder.WriteString(fmt.Sprintf("   Favicon: %s\n", result.FaviconURL))
+			if result.SiteIcon != "" {
+				resultBuilder.WriteString(fmt.Sprintf("   Favicon: %s\n", result.SiteIcon))
 			}
 
-			if result.ThumbnailURL != "" {
-				resultBuilder.WriteString(fmt.Sprintf("   Thumbnail: %s\n", result.ThumbnailURL))
+			if result.SiteName != "" {
+				resultBuilder.WriteString(fmt.Sprintf("   Site: %s\n", result.SiteName))
 			}
 
-			if result.Description != "" {
-				resultBuilder.WriteString(fmt.Sprintf("   Description: %s\n", result.Description))
+			if result.Snippet != "" {
+				resultBuilder.WriteString(fmt.Sprintf("   Description: %s\n", result.Snippet))
 			}
 
-			if result.DatePublished != "" {
-				resultBuilder.WriteString(fmt.Sprintf("   Date: %s\n", formatDate(result.DatePublished)))
-			}
-
-			if len(result.Snippets) > 0 {
-				resultBuilder.WriteString("   Snippets:\n")
-				for _, snippet := range result.Snippets {
-					resultBuilder.WriteString(fmt.Sprintf("     - %s\n", snippet))
-				}
+			if result.DateLastCrawled != "" {
+				resultBuilder.WriteString(fmt.Sprintf("   Date: %s\n", formatDate(result.DateLastCrawled)))
 			}
 
 			resultBuilder.WriteString("\n")
+		}
+
+		// Add image results if available
+		if response.Data.Images.Value != nil && len(response.Data.Images.Value) > 0 {
+			resultBuilder.WriteString("Image Results:\n")
+			resultBuilder.WriteString("==============\n\n")
+
+			for i, image := range response.Data.Images.Value {
+				resultBuilder.WriteString(fmt.Sprintf("%d. Image\n", i+1))
+				resultBuilder.WriteString(fmt.Sprintf("   URL: %s\n", image.ContentURL))
+				resultBuilder.WriteString(fmt.Sprintf("   Thumbnail: %s\n", image.ThumbnailURL))
+				resultBuilder.WriteString(fmt.Sprintf("   Host Page: %s\n", image.HostPageURL))
+				resultBuilder.WriteString(fmt.Sprintf("   Dimensions: %dx%d\n", image.Width, image.Height))
+				resultBuilder.WriteString("\n")
+			}
 		}
 
 		return mcp.NewToolResultText(resultBuilder.String()), nil
