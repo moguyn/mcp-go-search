@@ -1,8 +1,7 @@
 # Bocha AI Search MCP Server
 
-[![CI](https://github.com/yourusername/mcp-go-search/actions/workflows/ci.yml/badge.svg)](https://github.com/yourusername/mcp-go-search/actions/workflows/ci.yml)
-[![Go Report Card](https://goreportcard.com/badge/github.com/yourusername/mcp-go-search)](https://goreportcard.com/report/github.com/yourusername/mcp-go-search)
-[![codecov](https://codecov.io/gh/yourusername/mcp-go-search/branch/main/graph/badge.svg)](https://codecov.io/gh/yourusername/mcp-go-search)
+[![CI](https://github.com/moguyn/mcp-go-search/actions/workflows/ci.yml/badge.svg)](https://github.com/yourusername/mcp-go-search/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/moguyn/mcp-go-search/graph/badge.svg?token=J7QC7MFP0D)](https://codecov.io/gh/moguyn/mcp-go-search)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A Model Context Protocol (MCP) server that provides web search capabilities using the Bocha AI Search API.
